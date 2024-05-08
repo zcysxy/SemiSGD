@@ -27,7 +27,11 @@ kappas = [1,2,3,4,5];
 Ts = [50, 100, 125, 250, 5e2] * 2 * 1e1;
 
 if ~exist('m_opt', 'var')
-    load('opt.mat')
+	if ~exist('opt.mat', 'file')
+		opt
+	end
+	load('opt.mat')
+	m_opt = reshape(m_opt, [S,1]);
 end
 opts.m_opt = m_opt;
 
@@ -37,14 +41,35 @@ draw = @(p) find(cumsum(p) > rand(1), 1);
 opts.softmax = @(q, h) draw(exp((q-max(q))*h) / sum(exp((q-max(q))*h)));
 opts.bonus = @(s) 0.2 * (sin(4*pi*s*del) + 1); % bonus function
 opts.r = @(s,a,M) - 1/2*((a-1)*del - opts.bonus(s) - 0.5*(1-M(s+1)*S/3)).^2 * del; % reward function
-opts.method = 'det'; % 'sto'chatic or 'det'erministic
+opts.method = 'det'; % 'sto'chastic or 'det'erministic
 opts.P_sto = @(s,a) mod(s + (a/S > rand()), S);
 opts.P_det = @(s_con,a) mod(s_con + (a-1) * del, S);
 
 %% Run
-% QMI w/o FP
+%% SemiGD
+opts.method = 'det';
+opts.temp = 1e-1;
+opts.alpha = 1e-3;
+opts.beta0 = 1e-3;
+opts.T = 1e5;
+[err_gd, M_gd, Q_gd, V_gd] = gd(opts);
+
+%% QMI w/o FP
+opts.T = 50;
+opts.K = 100*20;
 opts.policy = 'on';
 opts.FP = false;
+[err_on, expl_on, M_on, Q_on, ~] = qmi(opts);
+figure
+axis = gca;
+varplot(err_on, 'marker', 'none', 'DisplayName', 'QMI w/o FP')
+hold on
+% err_gd and err_on are of different lengths
+% I want to slice err_gd to match the length of err_on
+% The slicing is done by taking evenly spaced indices
+varplot(err_gd(1:floor(length(err_gd)/length(err_on)):end,:));
+axis.YScale = 'log';
+legend('show')
 
 %% Off-policy QMI
 opts.policy = 'off';

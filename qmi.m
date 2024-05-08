@@ -4,6 +4,7 @@ if ~isfield(opts, 'A') error('Missing A!'); end
 S = opts.S; A = opts.A;
 if ~isfield(opts, 'del') opts.del = 1/S; end
 if ~isfield(opts, 'policy') error('Missing policy!'); end
+policy = opts.policy;
 if ~isfield(opts, 'Q0') opts.Q0 = zeros(S,1); end
 if ~isfield(opts, 's0') opts.s0 = 0; end
 if ~isfield(opts, 'm_opt') error('Missing m_opt!'); end
@@ -25,12 +26,13 @@ epochs = opts.epochs;
 m_opt = opts.m_opt; r = opts.r;
 softmax = opts.softmax; bonus = opts.bonus;
 P_sto = opts.P_sto; P_det = opts.P_det;
-method = opts.method; policy = opts.policy;
+method = opts.method;
 
 kappa = opts.kappa;
 skip = 1 + strcmpi(policy, 'off');
 K = opts.K * skip; 
-T = opts.T + (kappa * S - 1) * opts.T;
+T = opts.T;
+% T = opts.T + (kappa * S - 1) * opts.T;
 
 
 M_avg = zeros(S,K);
@@ -99,6 +101,7 @@ M_avg = M_avg / epochs;
 % err = sum(abs(M_avg - m_opt)).^2;
 M_avg = M_avg(:,end);
 M_avg = circshift(M_avg, -2);
+% plot(M_avg)
 Q_avg = Q_avg / epochs;
 v_avg = round(v_avg / epochs);
 [~, v_Q] = max(Q_avg,[],2);
