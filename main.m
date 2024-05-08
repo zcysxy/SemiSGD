@@ -35,9 +35,9 @@ opts.m_opt = m_opt;
 scale = @(arr) (arr - min(arr)) ./ (max(arr) - min(arr));
 draw = @(p) find(cumsum(p) > rand(1), 1);
 opts.softmax = @(q, h) draw(exp((q-max(q))*h) / sum(exp((q-max(q))*h)));
-opts.bonus = @(s) 0.2 * (sin(4*pi*s*del) + 1);
-opts.r = @(s,a,M) - 1/2*((a-1)*del - opts.bonus(s) - 0.5*(1-M(s+1)*S/3)).^2 * del;
-opts.method = 'det';
+opts.bonus = @(s) 0.2 * (sin(4*pi*s*del) + 1); % bonus function
+opts.r = @(s,a,M) - 1/2*((a-1)*del - opts.bonus(s) - 0.5*(1-M(s+1)*S/3)).^2 * del; % reward function
+opts.method = 'det'; % 'sto'chatic or 'det'erministic
 opts.P_sto = @(s,a) mod(s + (a/S > rand()), S);
 opts.P_det = @(s_con,a) mod(s_con + (a-1) * del, S);
 
