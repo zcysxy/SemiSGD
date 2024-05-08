@@ -8,6 +8,7 @@ if ~isfield(opts, 'Q0') opts.Q0 = zeros(S,1); end
 if ~isfield(opts, 's0') opts.s0 = 1; end
 if ~isfield(opts, 'm_opt') error('Missing m_opt!'); end
 if ~isfield(opts, 'r') error('Missing r!'); end
+if ~isfield(opts, 'GLIE') opts.GLIE = false; end
 if ~isfield(opts, 'softmax') error('Missing softmax!'); end
 if ~isfield(opts, 'epochs') opts.epochs = 10; end
 if ~isfield(opts, 'T') opts.T = 1000; end
@@ -26,6 +27,7 @@ m_opt = opts.m_opt; r = opts.r;
 softmax = opts.softmax;
 P_sto = opts.P_sto; P_det = opts.P_det;
 method = opts.method;
+GLIE = opts.GLIE;
 % FP = opts.FP;
 
 % sample_comp = opts.kappa;
@@ -47,19 +49,20 @@ for e = 1:epochs
 		M_hold = M;
     s1 = randi(S) - 1;              % random initial state
     s_con = s1;
-    err(1,e) = sum(abs((circshift(M,-1)-m_opt)))^2;
+    err(1,e) = sum(abs((circshift(M,-2)-m_opt)))^2;
     
 	for t = 1:T
+		if GLIE temp_mult = t; else temp_mult = 1; end
 		% Sample
 		s = s1;
-		a = softmax(Q(s+1,:), temp*t);
+		a = softmax(Q(s+1,:), temp * temp_mult);
 		if strcmpi(method, 'sto')
 				s1 = P_sto(s,a);
 		elseif strcmpi(method, 'det')
 				s_con = P_det(s_con,a);
 				s1 = mod(round(s_con), S);
 		end
-		a1 = softmax(Q(s1+1,:), temp*t);
+		a1 = softmax(Q(s1+1,:), temp * temp_mult);
 		
 		% Update Q
 		alpha = alpha0;%/ t;
@@ -71,7 +74,7 @@ for e = 1:epochs
 		% Update M
 		beta = beta0;%/ t;
 		M = (1-beta) * M; M(s1+1) = M(s1+1) + beta * 1;
-		err(t+1,e) = sum(abs((circshift(M,-1)-m_opt)))^2;
+		err(t+1,e) = sum(abs((circshift(M,-2)-m_opt)))^2;
 	end
 	
 	% Log error

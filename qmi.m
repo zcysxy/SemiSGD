@@ -10,6 +10,8 @@ if ~isfield(opts, 's0') opts.s0 = 0; end
 if ~isfield(opts, 'm_opt') error('Missing m_opt!'); end
 if ~isfield(opts, 'r') error('Missing r!'); end
 if ~isfield(opts, 'softmax') error('Missing softmax!'); end
+if ~isfield(opts, 'temp') opts.temp = 1; end
+if ~isfield(opts, 'GLIE') opts.GLIE = false; end
 if ~isfield(opts, 'P_sto') error('Missing P_sto!'); end
 if ~isfield(opts, 'P_det') error('Missing P_det!'); end
 if ~isfield(opts, 'method') opts.method = 'det'; end
@@ -18,15 +20,18 @@ if ~isfield(opts, 'K') opts.K = 48; end
 if ~isfield(opts, 'T') opts.T = 20; end
 if ~isfield(opts, 'M0') opts.M0 = ones(opts.S,1) / opts.S; end
 if ~isfield(opts, 'kappa') opts.kappa = 2 + strcmpi(policy, 'on'); end
-
+if ~isfield(opts, 'FP') opts.FP = false; end
+if ~isfield(opts, 'OMD') opts.OMD = false; end
 
 del = opts.del;
 M0 = opts.M0; Q0 = opts.Q0; s0 = opts.s0;
 epochs = opts.epochs;
 m_opt = opts.m_opt; r = opts.r;
 softmax = opts.softmax; bonus = opts.bonus;
+temp = opts.temp; GLIE = opts.GLIE;
 P_sto = opts.P_sto; P_det = opts.P_det;
 method = opts.method;
+FP = opts.FP; OMD = opts.OMD;
 
 kappa = opts.kappa;
 skip = 1 + strcmpi(policy, 'off');
@@ -51,19 +56,20 @@ for e = 1:epochs
     M = M ./ sum(M);
     s1 = randi(S) - 1;              % random initial state
     s_con = s1;
+		% Outer iteration initialization
+		Qk0 = Q; Mk0 = M;
 
     err(1,e) = sum(abs((circshift(M,-1)-m_opt)))^2;
     for k = 1:K
-        % Outer iteration initialization
-        Qk0 = Q; Mk0 = M;
         threshold = (k > 15 * skip);
         for t = 1:T
+						if GLIE temp_mult = t + k*T; else temp_mult = 1; end
             % Sample
             s = s1;
             if strcmpi(policy, 'on')
-                a = softmax(Q(s+1,:),(t + k*T)/skip);
+                a = softmax(Q(s+1,:),temp * temp_mult);
             elseif strcmpi(policy, 'off')
-                a = softmax(Qk0(s+1,:),(t + k*T)/2);
+                a = softmax(Q(s+1,:),temp * temp_mult);
             end
             if strcmpi(method, 'sto')
                 s1 = P_sto(s,a);
@@ -78,11 +84,26 @@ for e = 1:epochs
             % beta = 1/t/(k * (1 + 50 * threshold));
             % alpha = 0.1 / ((t) * threshold + 1);
             alpha = 1e-3;
-            beta = 1/t;
+            beta = 1/t; %!! WARNING: let step sizes be consistent
+						% beta = 1e-3;
             Q(s+1,a) = (1-alpha) * Q(s+1,a) + alpha * (r(s,a,Mk0) + (1-del) * max(Q(s1+1,:))); % Greedy
             % Update M
             M = (1-beta) * M; M(s1+1) = M(s1+1) + beta * 1;
         end
+
+        if FP
+            M = (1-1/k)*Mk0 + 1/k * M;
+						Mk0 = M;
+        else
+            Mk0 = M;
+        end
+
+				if OMD
+					Q = (1-1/k)*Qk0 + 1/k * Q;
+					Qk0 = Q;
+				else
+					Qk0 = Q;
+				end
         
         % Log error
         M_avg(:,k) = M_avg(:,k) + M;

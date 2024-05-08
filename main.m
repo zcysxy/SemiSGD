@@ -38,6 +38,7 @@ opts.m_opt = m_opt;
 % Helper functions
 scale = @(arr) (arr - min(arr)) ./ (max(arr) - min(arr));
 draw = @(p) find(cumsum(p) > rand(1), 1);
+opts.GLIE = false;
 opts.softmax = @(q, h) draw(exp((q-max(q))*h) / sum(exp((q-max(q))*h)));
 opts.bonus = @(s) 0.2 * (sin(4*pi*s*del) + 1); % bonus function
 opts.r = @(s,a,M) - 1/2*((a-1)*del - opts.bonus(s) - 0.5*(1-M(s+1)*S/3)).^2 * del; % reward function
@@ -48,65 +49,56 @@ opts.P_det = @(s_con,a) mod(s_con + (a-1) * del, S);
 %% Run
 %% SemiGD
 opts.method = 'det';
+% opts.temp = 1e1;
+% opts.GLIE = false;
 opts.temp = 1e-1;
+opts.GLIE = true;
 opts.alpha = 1e-3;
 opts.beta0 = 1e-3;
-opts.T = 1e5;
+opts.T = 1.2e5;
 [err_gd, M_gd, Q_gd, V_gd] = gd(opts);
 
 %% QMI w/o FP
-opts.T = 50;
-opts.K = 100*20;
+opts.TK = opts.T;
+opts.T = 2e3;%400;
+opts.K = opts.TK / opts.T;
 opts.policy = 'on';
-opts.FP = false;
-[err_on, expl_on, M_on, Q_on, ~] = qmi(opts);
-figure
-axis = gca;
-varplot(err_on, 'marker', 'none', 'DisplayName', 'QMI w/o FP')
-hold on
-% err_gd and err_on are of different lengths
-% I want to slice err_gd to match the length of err_on
-% The slicing is done by taking evenly spaced indices
-varplot(err_gd(1:floor(length(err_gd)/length(err_on)):end,:));
-axis.YScale = 'log';
-legend('show')
-
-%% Off-policy QMI
-opts.policy = 'off';
-results = struct;
-% for kappa = kappas
-for T = Ts
-    % opts.kappa = kappa;
-    opts.T = T;
-    opts.K = opts.TK / T;
-    opts.kappa = 1/S;
-    [err_off, expl_off, M_off, ~, ~] = qmi(opts);
-    % results.(sprintf('kappa%d', kappa)) = struct('err', err_off, 'expl', expl_off, 'M', M_off);
-    results.(sprintf('T%d', T)) = struct('err', err_off, 'expl', expl_off, 'M', M_off);
-end
-
-%% On-policy QMI
-% opts.policy = 'on';
-% results = struct;
-% % for kappa = kappas
-% for T = Ts
-%     % opts.kappa = kappa;
-%     opts.T = T;
-%     opts.K = opts.TK / T;
-%     opts.kappa = 1/S;
-%     [err_on, expl_on, M_on, ~, ~] = qmi(opts);
-%     % results.(sprintf('kappa%d', kappa)) = struct('err', err_on, 'expl', expl_on, 'M', M_on);
-%     results.(sprintf('T%d', T)) = struct('err', err_on, 'expl', expl_on, 'M', M_on);
-% end
-
-%% FPI
-% opts.K = K;
-% opts.T = 20;
-% [err_fpi, expl_fpi, M_fpi, V_avg, v_avg] = fpi(opts);
-% err_fpi_line = repmat(err_fpi(end,:), [size(err_fpi,1),1]);
-% expl_fpi_line = repmat(expl_fpi(end,:), [size(expl_fpi,1),1]);
+opts.FP = false; opts.OMD = false; [err_on, expl_on, M_on, Q_on, ~] = qmi(opts);
+opts.FP = true; opts.OMD = false;
+[err_fp, expl_fp, M_fp, ~, ~] = qmi(opts);
+opts.FP = false; opts.OMD = true;
+[err_omd, expl_omd, M_omd, ~, ~] = qmi(opts);
 
 %% Plot
-plot_list = {'T'};
-save_flag = false;
-plot_results
+figure
+axis = gca;
+varplot(err_on, 'marker', 'none', 'DisplayName', 'FPI')
+hold on
+varplot(err_fp, 'marker', 'none', 'DisplayName', 'FP')
+hold on
+varplot(err_omd, 'marker', 'none', 'DisplayName', 'OMD')
+hold on
+varplot(err_gd(1:floor(length(err_gd)/length(err_on)):end,:), 'DisplayName', 'GD');
+axis.YScale = 'log';
+legend('show')
+title('Mean squared error')
+
+figure
+set(0, 'DefaultLineLineWidth', 2);
+axis = gca;
+plot(scale(m_opt),  'DisplayName', 'Optimal')
+hold on
+plot(scale(M_on),  'DisplayName', 'FPI')
+hold on
+plot(scale(M_fp),  'DisplayName', 'FP')
+hold on
+plot(scale(M_omd), 'DisplayName', 'OMD')
+hold on
+plot(scale(M_gd), 'DisplayName', 'GD');
+title('Learned population distribution')
+legend('show')
+
+
+% plot_list = {'T'};
+% save_flag = false;
+% plot_results
