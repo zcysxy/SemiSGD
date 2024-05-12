@@ -36,10 +36,10 @@ kappas = [1,2,3,4,5];
 Ts = [50, 100, 125, 250, 5e2] * 2 * 1e1;
 
 if ~exist('m_opt', 'var')
-	if ~exist('opt.mat', 'file')
+	if ~exist('opt_fp.mat', 'file')
 		opt
 	end
-	load('opt.mat')
+	load('opt_fp.mat')
 	m_opt = reshape(m_opt, [S,1]);
 end
 opts.m_opt = m_opt;
@@ -58,12 +58,14 @@ opts.P_det = @(s_con,a) mod(s_con + (a-1) * del, S);
 %% Run
 %% LFA
 %{
-opts.dim = 6;
+opts.dim = 50;
 opts.method = 'det';
 % opts.temp = 1e1;
 % opts.GLIE = false;
-opts.temp = 1e-1;
-opts.GLIE = true;
+% opts.temp = 1e-1;
+% opts.GLIE = true;
+opts.temp = 1e9;
+opts.GLIE = false;
 opts.alpha = 1e-3;
 opts.beta0 = 1e-3;
 opts.T = 2e4;
@@ -72,27 +74,26 @@ opts.T = 2e4;
 
 %% SemiGD
 opts.method = 'det';
-% opts.temp = 1e1;
+opts.temp = 1e1;
+opts.GLIE = true;
+% opts.temp = 1e9;
 % opts.GLIE = false;
-opts.temp = 1e9;
-opts.GLIE = false;
 opts.alpha = 1e-3;
 opts.beta0 = 1e-3;
 % opts.T = 1.2e5;
-opts.T = 2e5;
+opts.T = 1e6;
 [err_gd, M_gd, Q_gd, V_gd] = gd(opts);
-%{
-	NOTE: log: 
- [1,true]: no oscillation, FPI=GD, OMD=FP
- [9,false] = [4,true]: FPI & OMD oscilate, GD drastically diverge from opt, FP slowly
-%}
+% NOTE: log: 
+% [1,true]: no oscillation, FPI=GD, OMD=FP
+% [9,false] = [4,true]: FPI & OMD oscilate, GD drastically diverge from opt, FP slowly
 
 %% QMI w/o FP
 opts.TK = opts.T;
 opts.T = 2e3;%400;
 opts.K = opts.TK / opts.T;
 opts.policy = 'on';
-opts.FP = false; opts.OMD = false; [err_on, expl_on, M_on, Q_on, ~] = qmi(opts);
+opts.FP = false; opts.OMD = false;
+[err_on, expl_on, M_on, Q_on, ~] = qmi(opts);
 opts.FP = true; opts.OMD = false;
 [err_fp, expl_fp, M_fp, ~, ~] = qmi(opts);
 opts.FP = false; opts.OMD = true;
@@ -107,12 +108,15 @@ hold on
 varplot(err_fp, 'marker', 'none', 'DisplayName', 'FPI + FP')
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.2; axis.Children(1).HandleVisibility = 'off';
 hold on
-% varplot(err_omd, 'marker', 'none', 'DisplayName', 'OMD')
-% hold on
+varplot(err_omd, 'marker', 'none', 'DisplayName', 'OMD')
+axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.2; axis.Children(1).HandleVisibility = 'off';
+hold on
 varplot(err_gd(1:floor(length(err_gd)/length(err_on)):end,:),  'marker', 'none', 'DisplayName', 'SemiSGD');
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.2; axis.Children(1).HandleVisibility = 'off';
+% varplot(err_gd(1:floor(length(err_gd)/length(err_on)):end,:),  'marker', 'none', 'DisplayName', 'SemiSGD');
+% axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.2; axis.Children(1).HandleVisibility = 'off';
 axis.YScale = 'log';
-axis.XLim = [0, 100];
+% axis.XLim = [0, 100];
 legend('show', 'fontsize', 18)
 title('Mean squared error', 'fontsize', 25)
 
@@ -127,7 +131,7 @@ plot(scale(M_fp),  'DisplayName', 'FP')
 hold on
 plot(scale(M_omd), 'DisplayName', 'OMD')
 hold on
-plot(scale(circshift(M_gd,-2)), 'DisplayName', 'GD');
+plot(scale(circshift(M_gd,0)), 'DisplayName', 'GD');
 title('Learned population distribution')
 legend('show')
 
