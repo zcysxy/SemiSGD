@@ -102,13 +102,13 @@ opts.FP = false; opts.OMD = true;
 %% Plot
 figure
 axis = gca;
-varplot(err_on, 'marker', 'none', 'DisplayName', 'FPI')
+varplot(expl_on, 'marker', 'none', 'DisplayName', 'FPI')
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.2; axis.Children(1).HandleVisibility = 'off';
 hold on
-varplot(err_fp, 'marker', 'none', 'DisplayName', 'FPI + FP')
+varplot(expl_fp, 'marker', 'none', 'DisplayName', 'FPI + FP')
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.2; axis.Children(1).HandleVisibility = 'off';
 hold on
-varplot(err_omd, 'marker', 'none', 'DisplayName', 'OMD')
+varplot(expl_omd, 'marker', 'none', 'DisplayName', 'OMD')
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.2; axis.Children(1).HandleVisibility = 'off';
 hold on
 varplot(err_gd(1:floor(length(err_gd)/length(err_on)):end,:),  'marker', 'none', 'DisplayName', 'SemiSGD');
