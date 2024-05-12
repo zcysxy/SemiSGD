@@ -1,6 +1,15 @@
 clc; close all;
-
 %% Setup
+% Defaults for axes
+set(0, 'DefaultAxesFontSize', 15, 'DefaultAxesFontName', 'times', 'DefaultAxesFontWeight', 'bold', 'DefaultAxesLineWidth', 1.5)
+% Defaults for plots
+set(0, 'DefaultLineLineWidth', 2, 'DefaultAxesLineStyleOrder', '.-', 'DefaultLineMarkerSize', 20)
+set(0, 'DefaultLineMarker', 'none')
+% Defaults for text
+set(0, 'DefaultTextInterpreter', 'latex', 'DefaultTextFontName', 'times', 'DefaultTextFontWeight', 'bold')
+% Defaults for legend
+set(0, 'DefaultLegendInterpreter', 'latex')
+
 % Problem parameters
 opts.S = 50;     % state space
 S = opts.S;
@@ -47,7 +56,9 @@ opts.P_sto = @(s,a) mod(s + (a/S > rand()), S);
 opts.P_det = @(s_con,a) mod(s_con + (a-1) * del, S);
 
 %% Run
-%% SemiGD
+%% LFA
+%{
+opts.dim = 6;
 opts.method = 'det';
 % opts.temp = 1e1;
 % opts.GLIE = false;
@@ -55,8 +66,26 @@ opts.temp = 1e-1;
 opts.GLIE = true;
 opts.alpha = 1e-3;
 opts.beta0 = 1e-3;
-opts.T = 1.2e5;
+opts.T = 2e4;
+[err_gd, M_gd, Q_gd, V_gd] = gd_lfa(opts);
+%}
+
+%% SemiGD
+opts.method = 'det';
+% opts.temp = 1e1;
+% opts.GLIE = false;
+opts.temp = 1e9;
+opts.GLIE = false;
+opts.alpha = 1e-3;
+opts.beta0 = 1e-3;
+% opts.T = 1.2e5;
+opts.T = 2e5;
 [err_gd, M_gd, Q_gd, V_gd] = gd(opts);
+%{
+	NOTE: log: 
+ [1,true]: no oscillation, FPI=GD, OMD=FP
+ [9,false] = [4,true]: FPI & OMD oscilate, GD drastically diverge from opt, FP slowly
+%}
 
 %% QMI w/o FP
 opts.TK = opts.T;
@@ -73,15 +102,19 @@ opts.FP = false; opts.OMD = true;
 figure
 axis = gca;
 varplot(err_on, 'marker', 'none', 'DisplayName', 'FPI')
+axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.2; axis.Children(1).HandleVisibility = 'off';
 hold on
-varplot(err_fp, 'marker', 'none', 'DisplayName', 'FP')
+varplot(err_fp, 'marker', 'none', 'DisplayName', 'FPI + FP')
+axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.2; axis.Children(1).HandleVisibility = 'off';
 hold on
-varplot(err_omd, 'marker', 'none', 'DisplayName', 'OMD')
-hold on
-varplot(err_gd(1:floor(length(err_gd)/length(err_on)):end,:), 'DisplayName', 'GD');
+% varplot(err_omd, 'marker', 'none', 'DisplayName', 'OMD')
+% hold on
+varplot(err_gd(1:floor(length(err_gd)/length(err_on)):end,:),  'marker', 'none', 'DisplayName', 'SemiSGD');
+axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.2; axis.Children(1).HandleVisibility = 'off';
 axis.YScale = 'log';
-legend('show')
-title('Mean squared error')
+axis.XLim = [0, 100];
+legend('show', 'fontsize', 18)
+title('Mean squared error', 'fontsize', 25)
 
 figure
 set(0, 'DefaultLineLineWidth', 2);
@@ -94,7 +127,7 @@ plot(scale(M_fp),  'DisplayName', 'FP')
 hold on
 plot(scale(M_omd), 'DisplayName', 'OMD')
 hold on
-plot(scale(M_gd), 'DisplayName', 'GD');
+plot(scale(circshift(M_gd,-2)), 'DisplayName', 'GD');
 title('Learned population distribution')
 legend('show')
 

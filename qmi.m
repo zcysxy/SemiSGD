@@ -84,7 +84,8 @@ for e = 1:epochs
             % beta = 1/t/(k * (1 + 50 * threshold));
             % alpha = 0.1 / ((t) * threshold + 1);
             alpha = 1e-3;
-            beta = 1/t; %!! WARNING: let step sizes be consistent
+            % beta = 1/t; %!! WARNING: let step sizes be consistent
+            beta = 1e-3; %!! WARNING: let step sizes be consistent
 						% beta = 1e-3;
             Q(s+1,a) = (1-alpha) * Q(s+1,a) + alpha * (r(s,a,Mk0) + (1-del) * max(Q(s1+1,:))); % Greedy
             % Update M
