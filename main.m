@@ -28,18 +28,13 @@ opts.s0 = 0;
 
 % Training parameters
 opts.epochs = 10;
-K = 50;
-opts.K = 20;
-opts.T = 20;
-opts.TK = 1e5; %~= opts.T * opts.K * S * 10;
-kappas = [1,2,3,4,5];
-Ts = [50, 100, 125, 250, 5e2] * 2 * 1e1;
 
+% Load reference solution
 if ~exist('m_opt', 'var')
-	if ~exist('opt_fp.mat', 'file')
+	if ~exist('opt_fp_5e7.mat', 'file')
 		opt
 	end
-	load('opt_fp.mat')
+	load('opt_fp_5e7.mat')
 	m_opt = reshape(m_opt, [S,1]);
 end
 opts.m_opt = m_opt;
@@ -61,12 +56,10 @@ opts.P_det = @(s_con,a) mod(s_con + (a-1) * del, S);
 opts.dim = 50;
 opts.method = 'det';
 % opts.temp = 1e1;
-% opts.GLIE = false;
 % opts.temp = 1e-1;
 % opts.GLIE = true;
-opts.temp = 1e9;
 opts.GLIE = false;
-opts.alpha = 1e-3;
+opts.alpha0 = 1e-3;
 opts.beta0 = 1e-3;
 opts.T = 2e4;
 [err_gd, M_gd, Q_gd, V_gd] = gd_lfa(opts);
@@ -78,8 +71,8 @@ opts.temp = 1e1;
 opts.GLIE = true;
 % opts.temp = 1e9;
 % opts.GLIE = false;
-opts.alpha = 1e-3;
-opts.beta0 = 1e-3;
+opts.alpha0 = 8e-4;
+opts.beta0 = 8e-4;
 % opts.T = 1.2e5;
 opts.T = 1e6;
 [err_gd, M_gd, Q_gd, V_gd] = gd(opts);
@@ -89,7 +82,7 @@ opts.T = 1e6;
 
 %% QMI w/o FP
 opts.TK = opts.T;
-opts.T = 2e3;%400;
+opts.T = 1e3;%2e3;%400
 opts.K = opts.TK / opts.T;
 opts.policy = 'on';
 opts.FP = false; opts.OMD = false;
@@ -101,22 +94,23 @@ opts.FP = false; opts.OMD = true;
 
 %% Plot
 figure
+skip = 2;
 axis = gca;
-varplot(expl_on, 'marker', 'none', 'DisplayName', 'FPI')
-axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.2; axis.Children(1).HandleVisibility = 'off';
+varplot(err_on(1:skip:end,:), 'marker', 'none', 'DisplayName', 'FPI')
+axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
 hold on
-varplot(expl_fp, 'marker', 'none', 'DisplayName', 'FPI + FP')
-axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.2; axis.Children(1).HandleVisibility = 'off';
+varplot(err_fp(1:skip:end,:), 'marker', 'none', 'DisplayName', 'FPI + FP')
+axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
 hold on
-varplot(expl_omd, 'marker', 'none', 'DisplayName', 'OMD')
-axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.2; axis.Children(1).HandleVisibility = 'off';
+varplot(err_omd(1:skip:end,:), 'marker', 'none', 'DisplayName', 'FPI + OMD')
+axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
 hold on
-varplot(err_gd(1:floor(length(err_gd)/length(err_on)):end,:),  'marker', 'none', 'DisplayName', 'SemiSGD');
-axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.2; axis.Children(1).HandleVisibility = 'off';
+varplot(err_gd(1:skip*floor(length(err_gd)/length(err_on)):end,:),  'marker', 'none', 'DisplayName', 'SemiSGD');
+axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
 % varplot(err_gd(1:floor(length(err_gd)/length(err_on)):end,:),  'marker', 'none', 'DisplayName', 'SemiSGD');
 % axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.2; axis.Children(1).HandleVisibility = 'off';
 axis.YScale = 'log';
-% axis.XLim = [0, 100];
+axis.XLim = [0, 500];
 legend('show', 'fontsize', 18)
 title('Mean squared error', 'fontsize', 25)
 
