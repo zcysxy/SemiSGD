@@ -67,12 +67,12 @@ opts.T = 2e4;
 
 %% SemiGD
 opts.method = 'det';
-opts.temp = 1e1;
-opts.GLIE = true;
-% opts.temp = 1e9;
-% opts.GLIE = false;
-opts.alpha0 = 8e-4;
-opts.beta0 = 8e-4;
+% opts.temp = 1e1;
+% opts.GLIE = true;
+opts.temp = 1e9;
+opts.GLIE = false;
+opts.alpha0 = 1e-3;
+opts.beta0 = 1e-3;
 % opts.T = 1.2e5;
 opts.T = 1e6;
 [err_gd, M_gd, Q_gd, V_gd] = gd(opts);
@@ -92,28 +92,31 @@ opts.FP = true; opts.OMD = false;
 opts.FP = false; opts.OMD = true;
 [err_omd, expl_omd, M_omd, ~, ~] = qmi(opts);
 
-%% Plot
+%% Plot MSE
 figure
 skip = 2;
+ci = 0.85;
 axis = gca;
-varplot(err_on(1:skip:end,:), 'marker', 'none', 'DisplayName', 'FPI')
+varplot(err_on(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'FPI')
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
 hold on
-varplot(err_fp(1:skip:end,:), 'marker', 'none', 'DisplayName', 'FPI + FP')
+varplot(err_fp(1:skip:end,:), 'ci', ci,'marker', 'none', 'DisplayName', 'FPI + FP')
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
 hold on
-varplot(err_omd(1:skip:end,:), 'marker', 'none', 'DisplayName', 'FPI + OMD')
+varplot(err_omd(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'FPI + OMD')
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
 hold on
-varplot(err_gd(1:skip*floor(length(err_gd)/length(err_on)):end,:),  'marker', 'none', 'DisplayName', 'SemiSGD');
+varplot(err_gd(1:skip*floor(length(err_gd)/length(err_on)):end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'SemiSGD');
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
 % varplot(err_gd(1:floor(length(err_gd)/length(err_on)):end,:),  'marker', 'none', 'DisplayName', 'SemiSGD');
 % axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.2; axis.Children(1).HandleVisibility = 'off';
 axis.YScale = 'log';
-axis.XLim = [0, 500];
+axis.XLim = [0, 200];
+axis.YLim = [1e-2, 1];
 legend('show', 'fontsize', 18)
 title('Mean squared error', 'fontsize', 25)
 
+%% Plot population distribution
 figure
 set(0, 'DefaultLineLineWidth', 2);
 axis = gca;
