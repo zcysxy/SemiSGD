@@ -1,8 +1,11 @@
-function M = ip(u)
+function M = ip(u,tol)
+	if nargin < 2; tol = 5e-2; end
 	M = normalize(1./u, 1, 'norm', 1);
 	S = size(u, 1);
-	u = u * 1/S;
-	for k = 1:100
+	u = u / S;
+	iter = 1;
+	while iter <= 1e3
+		iter = iter + 1;
 		M_old = M;
 		for i =1:S
 			if i > 1; l = i - 1; else l = S; end
@@ -11,5 +14,7 @@ function M = ip(u)
 							 0.5 * (M_old(r,:,:) .* u(r,:,:) -...
 											M_old(l,:,:) .* u(l,:,:));
 		end
+		if norm(M(:) - M_old(:), Inf) < tol; break;
 	end
+	% disp(norm(M(:) - M_old(:), Inf))
 end

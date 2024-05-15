@@ -46,14 +46,15 @@ draw = @(p) find(cumsum(p) > rand(1), 1);
 opts.GLIE = false;
 opts.softmax = @(q, h) draw(exp((q-max(q))*h) / sum(exp((q-max(q))*h)));
 opts.bonus = @(s) 0.2 * (sin(4*pi*s*del) + 1); % bonus function
-opts.r = @(s,a,M) - 1/2*((a-1)*del - opts.bonus(s) - 0.5*(1-M(s+1)*S/3)).^2 * del; % reward function
+opts.r = @(s,a,M) - 1/2*(a*del - opts.bonus(s) - 0.5*(1-M(s,:,:)*S/3)).^2 * del; % reward function
 opts.method = 'det'; % 'sto'chastic or 'det'erministic
-opts.P_sto = @(s,a) mod(s + (a/S > rand()), S);
-opts.P_det = @(s_con,a) mod(s_con + (a-1) * del, S);
-err = @(M,m_opt) squeeze(sum((circshift(M,-2)-m_opt).^2, 1));
+opts.P_sto = @(s,a) mod(s + (a/S > rand()) - 1, S) + 1;
+% opts.P_det = @(s_con,a) mod(s_con + (a-1) * del - 1, S) + 1;
+opts.P_det = @(s_con,a) s_con + a * del;
+err = @(M,m_opt) squeeze(sum((circshift(M,0)-m_opt).^2, 1));
 % ip = @(v) normalize(1. / v, 1, 'norm', 1);
-br = @(M) (opts.bonus(0:S-1)' + 0.5*(1-M*S/3)) / del + 1;
-expl = @(u) squeeze(sum(((squeeze(u) - br(ip(squeeze(u)))) * del).^2,1));
+% br = @(M) (opts.bonus(1:S)' + 0.5*(1-M*S/3)) / del + 1;
+expl = @(u) squeeze(sum(((squeeze(u) - br(ip(squeeze(u)),opts)) * del).^2,1));
 
 %% Run
 %% LFA
@@ -72,15 +73,17 @@ opts.T = 2e4;
 
 %% SemiGD
 opts.method = 'det';
-% opts.temp = 1e1;
-% opts.GLIE = true;
-opts.temp = 1e7;
-opts.GLIE = false;
+opts.temp = 1e2;
+opts.GLIE = true;
+% opts.temp = 1e7;
+% opts.GLIE = false;
+% opts.temp = 1e9;
+% opts.GLIE = false;
 opts.alpha0 = 1e-3;
 opts.beta0 = 1e-3;
 % opts.T = 1.2e5;
-opts.T = 1e5;
-opts.K = 1e2;
+opts.T = 1e6;
+opts.K = 1e3;
 [M_gd_arr, Q_gd_arr] = gd(opts);
 err_gd = err(M_gd_arr, m_opt);
 [~, u_gd_arr] = max(Q_gd_arr, [], 2);
@@ -114,7 +117,7 @@ expl_omd = expl(u_omd_arr);
 
 %% Plot MSE
 figure
-skip = 2;
+skip = 5;
 ci = 0.85;
 axis = gca;
 varplot(err_fpi(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'FPI')
@@ -136,8 +139,6 @@ title('Mean squared error', 'fontsize', 25)
 
 %% Plot exploitability
 figure
-skip = 2;
-ci = 0.85;
 axis = gca;
 varplot(expl_fpi(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'FPI')
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';

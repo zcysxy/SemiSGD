@@ -48,7 +48,7 @@ for e = 1:epochs
     Q = Q0;
     M = abs(randn(S,1));
     M = M ./ sum(M);
-    s1 = randi(S) - 1;              % random initial state
+    s1 = randi(S);              % random initial state
     s_con = s1;
 		% Outer iteration initialization
 		Qk0 = Q; Mk0 = M;
@@ -62,15 +62,15 @@ for e = 1:epochs
             % Sample
             s = s1;
             if strcmpi(policy, 'on')
-                a = softmax(Q(s+1,:),temp * temp_mult);
+                a = softmax(Q(s,:),temp * temp_mult);
             elseif strcmpi(policy, 'off')
-                a = softmax(Q(s+1,:),temp * temp_mult);
+                a = softmax(Q(s,:),temp * temp_mult);
             end
             if strcmpi(method, 'sto')
                 s1 = P_sto(s,a);
             elseif strcmpi(method, 'det')
                 s_con = P_det(s_con,a);
-                s1 = mod(round(s_con), S);
+                s1 = mod(round(s_con) - 1, S) + 1;
             end
             
             % Update Q
@@ -82,9 +82,9 @@ for e = 1:epochs
             % beta = 1/t; %!! WARNING: let step sizes be consistent
             beta = 1e-3; %!! WARNING: let step sizes be consistent
 						% beta = 1e-3;
-            Q(s+1,a) = (1-alpha) * Q(s+1,a) + alpha * (r(s,a,Mk0) + (1-del) * max(Q(s1+1,:))); % Greedy
+            Q(s,a) = (1-alpha) * Q(s,a) + alpha * (r(s,a,Mk0) + (1-del) * max(Q(s1,:))); % Greedy
             % Update M
-            M = (1-beta) * M; M(s1+1) = M(s1+1) + beta * 1;
+            M = (1-beta) * M; M(s1) = M(s1) + beta * 1;
         end
 
         if FP

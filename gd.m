@@ -46,7 +46,7 @@ for e = 1:epochs
     Q = Q0;
     M = abs(randn(S,1));
     M = M ./ sum(M);
-    s1 = randi(S) - 1;              % random initial state
+    s1 = randi(S); % random initial state
     s_con = s1;
 		M_arr(:,1,e) = M;
 		Q_arr(:,:,1,e) = Q;
@@ -55,22 +55,22 @@ for e = 1:epochs
 		if GLIE temp_mult = t; else temp_mult = 1; end
 		% Sample
 		s = s1;
-		a = softmax(Q(s+1,:), temp * temp_mult);
+		a = softmax(Q(s,:), temp * temp_mult);
 		if strcmpi(method, 'sto')
 				s1 = P_sto(s,a);
 		elseif strcmpi(method, 'det')
 				s_con = P_det(s_con,a);
-				s1 = mod(round(s_con), S);
+				s1 = mod(round(s_con) - 1, S) + 1;
 		end
-		a1 = softmax(Q(s1+1,:), temp * temp_mult);
+		a1 = softmax(Q(s1,:), temp * temp_mult);
 		
 		% Update Q
 		alpha = alpha0;%/ t;
 		% Q(s,a) = (1-alpha) * Q(s,a) + alpha * (r(s,a,M) + gamma * max(Q(s1,filter(s1,:) == 1)));
-		Q(s+1,a) = (1-alpha) * Q(s+1,a) + alpha * (r(s,a,M) + (1-del) * Q(s1+1,a1));
+		Q(s,a) = (1-alpha) * Q(s,a) + alpha * (r(s,a,M) + (1-del) * Q(s1,a1));
 		% Update M
 		beta = beta0;%/ t;
-		M = (1-beta) * M; M(s1+1) = M(s1+1) + beta * 1;
+		M = (1-beta) * M; M(s1) = M(s1) + beta * 1;
 
 		if mod(t, skip) == 0
 			M_arr(:,t/skip+1,e) = M;
