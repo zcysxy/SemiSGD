@@ -17,8 +17,9 @@ opts.A = S;      % action space
 A = opts.A;
 opts.del = 1/S;  % state's gap
 del = opts.del;
+addpath('data')
 if ~exist('tras', 'var')
-    load('ring_road/tras.mat')
+    load('tras.mat')
 end
 M0 = cos(linspace(0,1,S))';
 M0 = M0 ./ sum(M0); % initial M
@@ -49,6 +50,10 @@ opts.r = @(s,a,M) - 1/2*((a-1)*del - opts.bonus(s) - 0.5*(1-M(s+1)*S/3)).^2 * de
 opts.method = 'det'; % 'sto'chastic or 'det'erministic
 opts.P_sto = @(s,a) mod(s + (a/S > rand()), S);
 opts.P_det = @(s_con,a) mod(s_con + (a-1) * del, S);
+err = @(M,m_opt) squeeze(sum((circshift(M,-2)-m_opt).^2, 1));
+% ip = @(v) normalize(1. / v, 1, 'norm', 1);
+br = @(M) (opts.bonus(0:S-1)' + 0.5*(1-M*S/3)) / del + 1;
+expl = @(u) squeeze(sum(((squeeze(u) - br(ip(squeeze(u)))) * del).^2,1));
 
 %% Run
 %% LFA
@@ -69,35 +74,50 @@ opts.T = 2e4;
 opts.method = 'det';
 % opts.temp = 1e1;
 % opts.GLIE = true;
-opts.temp = 1e9;
+opts.temp = 1e7;
 opts.GLIE = false;
 opts.alpha0 = 1e-3;
 opts.beta0 = 1e-3;
 % opts.T = 1.2e5;
-opts.T = 1e6;
-[err_gd, M_gd, Q_gd, V_gd] = gd(opts);
+opts.T = 1e5;
+opts.K = 1e2;
+[M_gd_arr, Q_gd_arr] = gd(opts);
+err_gd = err(M_gd_arr, m_opt);
+[~, u_gd_arr] = max(Q_gd_arr, [], 2);
+expl_gd = expl(u_gd_arr);
 % NOTE: log: 
 % [1,true]: no oscillation, FPI=GD, OMD=FP
 % [9,false] = [4,true]: FPI & OMD oscilate, GD drastically diverge from opt, FP slowly
 
 %% QMI w/o FP
 opts.TK = opts.T;
-opts.T = 1e3;%2e3;%400
-opts.K = opts.TK / opts.T;
+% opts.T = %1e3;%2e3;%400
+opts.T = opts.TK / opts.K;
 opts.policy = 'on';
 opts.FP = false; opts.OMD = false;
-[err_on, expl_on, M_on, Q_on, ~] = qmi(opts);
+[M_fpi_arr, Q_fpi_arr] = qmi(opts);
+err_fpi = err(M_fpi_arr, m_opt);
+[~, u_fpi_arr] = max(Q_fpi_arr, [], 2);
+expl_fpi = expl(u_fpi_arr);
+
 opts.FP = true; opts.OMD = false;
-[err_fp, expl_fp, M_fp, ~, ~] = qmi(opts);
+[M_fp_arr, Q_fp_arr] = qmi(opts);
+err_fp = err(M_fp_arr, m_opt);
+[~, u_fp_arr] = max(Q_fp_arr, [], 2);
+expl_fp = expl(u_fp_arr);
+
 opts.FP = false; opts.OMD = true;
-[err_omd, expl_omd, M_omd, ~, ~] = qmi(opts);
+[M_omd_arr, Q_omd_arr] = qmi(opts);
+err_omd = err(M_omd_arr, m_opt);
+[~, u_omd_arr] = max(Q_omd_arr, [], 2);
+expl_omd = expl(u_omd_arr);
 
 %% Plot MSE
 figure
 skip = 2;
 ci = 0.85;
 axis = gca;
-varplot(err_on(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'FPI')
+varplot(err_fpi(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'FPI')
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
 hold on
 varplot(err_fp(1:skip:end,:), 'ci', ci,'marker', 'none', 'DisplayName', 'FPI + FP')
@@ -106,17 +126,38 @@ hold on
 varplot(err_omd(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'FPI + OMD')
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
 hold on
-varplot(err_gd(1:skip*floor(length(err_gd)/length(err_on)):end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'SemiSGD');
+varplot(err_gd(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'SemiSGD');
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
-% varplot(err_gd(1:floor(length(err_gd)/length(err_on)):end,:),  'marker', 'none', 'DisplayName', 'SemiSGD');
-% axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.2; axis.Children(1).HandleVisibility = 'off';
 axis.YScale = 'log';
-axis.XLim = [0, 200];
-axis.YLim = [1e-2, 1];
+% axis.XLim = [0, 200];
+% axis.YLim = [1e-2, 1];
 legend('show', 'fontsize', 18)
 title('Mean squared error', 'fontsize', 25)
 
+%% Plot exploitability
+figure
+skip = 2;
+ci = 0.85;
+axis = gca;
+varplot(expl_fpi(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'FPI')
+axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
+hold on
+varplot(expl_fp(1:skip:end,:), 'ci', ci,'marker', 'none', 'DisplayName', 'FPI + FP')
+axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
+hold on
+varplot(expl_omd(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'FPI + OMD')
+axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
+hold on
+varplot(expl_gd(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'SemiSGD');
+axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
+axis.YScale = 'log';
+% axis.XLim = [0, 200];
+% axis.YLim = [1e-2, 1];
+legend('show', 'fontsize', 18)
+title('Exploitability', 'fontsize', 25)
+
 %% Plot population distribution
+%{
 figure
 set(0, 'DefaultLineLineWidth', 2);
 axis = gca;
@@ -131,7 +172,7 @@ hold on
 plot(scale(circshift(M_gd,0)), 'DisplayName', 'GD');
 title('Learned population distribution')
 legend('show')
-
+%}
 
 % plot_list = {'T'};
 % save_flag = false;

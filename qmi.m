@@ -1,4 +1,4 @@
-function [err,expl,M_avg,Q_avg,v_avg] = qmi(opts)
+function [M_arr,Q_arr] = qmi(opts)
 if ~isfield(opts, 'S') error('Missing S!'); end
 if ~isfield(opts, 'A') error('Missing A!'); end
 S = opts.S; A = opts.A;
@@ -40,14 +40,8 @@ T = opts.T;
 % T = opts.T + (kappa * S - 1) * opts.T;
 
 
-M_avg = zeros(S,K);
-Q_avg = zeros(S,1);
-v_avg = zeros(S,1);
-if ~exist('m_opt', 'var')
-    load('opt.mat')
-end
-err = zeros(K+1,epochs);
-expl = zeros(K,epochs);
+M_arr = zeros(S,K,epochs);
+Q_arr = zeros(S,S,K,epochs);
 
 for e = 1:epochs
     fprintf("epoch: %d\n", e)
@@ -59,7 +53,8 @@ for e = 1:epochs
 		% Outer iteration initialization
 		Qk0 = Q; Mk0 = M;
 
-    err(1,e) = sum(abs((circshift(M,-1)-m_opt)))^2;
+		M_arr(:,1,e) = M;
+		Q_arr(:,:,1,e) = Q;
     for k = 1:K
         threshold = (k > 15 * skip);
         for t = 1:T
@@ -106,29 +101,9 @@ for e = 1:epochs
 					Qk0 = Q;
 				end
         
-        % Log error
-        M_avg(:,k) = M_avg(:,k) + M;
-        err(k+1,e) = sum(abs((circshift(M,-1)-m_opt)))^2;
-        u_br = arrayfun(@(s) (bonus(s) + 0.5*(1-M(s+1)*S/3)) / del + 1, 0:S-1)';
-        [~, u_cr] = max(Qk0,[],2);
-        expl(k,e) = sum((abs(u_br - u_cr) * del).^2);
-        % err(k) = err(k) + sum(abs(M-m_opt)) * del;
+        % Log
+				M_arr(:,k+1,e) = M;
+				Q_arr(:,:,k+1,e) = Q;
     end
-    Q_avg = Q_avg + Q;
-    [~, v] = max(Q,[],2); % get deterministic policy from Q
-    v_avg = v_avg + (v - 1);
 end
-
-M_avg = M_avg / epochs;
-% err = sum(abs(M_avg - m_opt)).^2;
-M_avg = M_avg(:,end);
-M_avg = circshift(M_avg, -2);
-% plot(M_avg)
-Q_avg = Q_avg / epochs;
-v_avg = round(v_avg / epochs);
-[~, v_Q] = max(Q_avg,[],2);
-% u_Q = u_Q - 1;
-% u_opt = u_avg;
-% m_opt = M_avg;
-% save('opt.mat', 'u_opt', 'm_opt', '-mat')
 end
