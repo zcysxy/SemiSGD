@@ -5,8 +5,8 @@ S = opts.S; A = opts.A;
 if ~isfield(opts, 'del') opts.del = 1/S; end
 if ~isfield(opts, 'policy') error('Missing policy!'); end
 policy = opts.policy;
-if ~isfield(opts, 'Q0') opts.Q0 = zeros(S,1); end
-if ~isfield(opts, 's0') opts.s0 = 0; end
+% if ~isfield(opts, 'Q0') opts.Q0 = zeros(S,1); end
+% if ~isfield(opts, 's0') opts.s0 = 0; end
 if ~isfield(opts, 'm_opt') error('Missing m_opt!'); end
 if ~isfield(opts, 'r') error('Missing r!'); end
 if ~isfield(opts, 'softmax') error('Missing softmax!'); end
@@ -18,13 +18,13 @@ if ~isfield(opts, 'method') opts.method = 'det'; end
 if ~isfield(opts, 'epochs') opts.epochs = 10; end
 if ~isfield(opts, 'K') opts.K = 48; end
 if ~isfield(opts, 'T') opts.T = 20; end
-if ~isfield(opts, 'M0') opts.M0 = ones(opts.S,1) / opts.S; end
+% if ~isfield(opts, 'M0') opts.M0 = ones(opts.S,1) / opts.S; end
 if ~isfield(opts, 'kappa') opts.kappa = 2 + strcmpi(policy, 'on'); end
 if ~isfield(opts, 'FP') opts.FP = false; end
 if ~isfield(opts, 'OMD') opts.OMD = false; end
 
 del = opts.del;
-M0 = opts.M0; Q0 = opts.Q0; s0 = opts.s0;
+% M0 = opts.M0; Q0 = opts.Q0; s0 = opts.s0;
 epochs = opts.epochs;
 m_opt = opts.m_opt; r = opts.r;
 softmax = opts.softmax; bonus = opts.bonus;
@@ -34,7 +34,7 @@ method = opts.method;
 FP = opts.FP; OMD = opts.OMD;
 
 kappa = opts.kappa;
-skip = 1 + strcmpi(policy, 'off');
+skip = 1; % + strcmpi(policy, 'off');
 K = opts.K * skip; 
 T = opts.T;
 % T = opts.T + (kappa * S - 1) * opts.T;
@@ -45,10 +45,9 @@ Q_arr = zeros(S,S,K,epochs);
 
 for e = 1:epochs
     fprintf("epoch: %d\n", e)
-    Q = Q0;
-    M = abs(randn(S,1));
-    M = M ./ sum(M);
-    s1 = randi(S);              % random initial state
+		if ~isfield(opts, 'Q0') Q = -rand(S,A); else Q = opts.Q0; end
+		if ~isfield(opts, 'M0') M = abs(randn(S,1)); M = M./sum(M); else M = opts.M0; end
+		if ~isfield(opts, 's0') s1 = randi(S); else s1 = opts.s0; end
     s_con = s1;
 		% Outer iteration initialization
 		Qk0 = Q; Mk0 = M;
@@ -64,7 +63,7 @@ for e = 1:epochs
             if strcmpi(policy, 'on')
                 a = softmax(Q(s,:),temp * temp_mult);
             elseif strcmpi(policy, 'off')
-                a = softmax(Q(s,:),temp * temp_mult);
+                a = softmax(Qk0(s,:),temp * temp_mult);
             end
             if strcmpi(method, 'sto')
                 s1 = P_sto(s,a);

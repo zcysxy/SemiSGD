@@ -4,8 +4,9 @@ if ~isfield(opts, 'S') error('Missing S!'); end
 if ~isfield(opts, 'A') error('Missing A!'); end
 S = opts.S; A = opts.A;
 if ~isfield(opts, 'del') opts.del = 1/S; end
-if ~isfield(opts, 'Q0') opts.Q0 = zeros(S,1); end
-if ~isfield(opts, 's0') opts.s0 = 1; end
+% if ~isfield(opts, 'M0') opts.M0 = ones(opts.S,1) / opts.S; end
+% if ~isfield(opts, 'Q0') opts.Q0 = zeros(S,1); end
+% if ~isfield(opts, 's0') opts.s0 = 1; end
 if ~isfield(opts, 'm_opt') error('Missing m_opt!'); end
 if ~isfield(opts, 'r') error('Missing r!'); end
 if ~isfield(opts, 'GLIE') opts.GLIE = false; end
@@ -13,7 +14,6 @@ if ~isfield(opts, 'softmax') error('Missing softmax!'); end
 if ~isfield(opts, 'epochs') opts.epochs = 10; end
 if ~isfield(opts, 'T') opts.T = 1000; end
 if ~isfield(opts, 'K') error('Missing K!'); end
-if ~isfield(opts, 'M0') opts.M0 = ones(opts.S,1) / opts.S; end
 % if ~isfield(opts, 'FP') opts.FP = false; end
 if ~isfield(opts, 'method') opts.method = 'det'; end
 if ~isfield(opts, 'kappa') opts.kappa = 1; end
@@ -22,7 +22,7 @@ if ~isfield(opts, 'beta0') opts.beta0 = 1e-2; end
 if ~isfield(opts, 'temp') opts.temp = 1e-3; end
 
 del = opts.del;
-M0 = opts.M0; Q0 = opts.Q0; s0 = opts.s0;
+% M0 = opts.M0; Q0 = opts.Q0; s0 = opts.s0;
 epochs = opts.epochs;
 m_opt = opts.m_opt; r = opts.r;
 softmax = opts.softmax;
@@ -43,10 +43,9 @@ Q_arr = zeros(S,S,K+1,epochs);
 
 for e = 1:epochs
     fprintf('epoch: %d\n', e)
-    Q = Q0;
-    M = abs(randn(S,1));
-    M = M ./ sum(M);
-    s1 = randi(S); % random initial state
+		if ~isfield(opts, 'Q0') Q = -rand(S,A); else Q = opts.Q0; end
+		if ~isfield(opts, 'M0') M = abs(randn(S,1)); M = M./sum(M); else M = opts.M0; end
+		if ~isfield(opts, 's0') s1 = randi(S); else s1 = opts.s0; end
     s_con = s1;
 		M_arr(:,1,e) = M;
 		Q_arr(:,:,1,e) = Q;

@@ -1,5 +1,8 @@
 function M = ip(u,tol)
+	% Return the induced population given a policy (speed u)
+	% tol is the tolerance for the convergence 
 	if nargin < 2; tol = 5e-2; end
+
 	M = normalize(1./u, 1, 'norm', 1);
 	S = size(u, 1);
 	u = u / S;
