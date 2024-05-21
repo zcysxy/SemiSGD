@@ -23,7 +23,7 @@ if ~exist('tras', 'var')
 end
 M0 = cos(linspace(0,1,S))';
 M0 = M0 ./ sum(M0); % initial M
-opts.Q0 = zeros(S,A);  % initial Q
+% opts.Q0 = zeros(S,A);  % initial Q
 % opts.V0 = zeros(S,1);  % initial V
 % opts.s0 = 1;
 
@@ -85,7 +85,8 @@ opts.T = 2e4;
 [err_gd, M_gd, Q_gd, V_gd] = gd_lfa(opts);
 %}
 
-%% SemiGD
+
+%% SemiSGD
 opts.method = 'det';
 % opts.temp = 1e1;
 % opts.GLIE = true;
@@ -106,12 +107,30 @@ expl_gd = expl(squeeze(u_gd_arr),opts);
 % [1,true]: no oscillation, FPI=GD, OMD=FP
 % [9,false] = [4,true]: FPI & OMD oscilate, GD drastically diverge from opt, FP slowly
 
+%% SemiSGD w/ coarser grid
+% opts.Q0 = Inf; opts.M0 = Inf, opts.s0 = Inf;
+% opts = rmfield(opts, {'Q0', 'M0', 's0'});
+% opts.S = 50;
+% opts.A = 50;
+% del = 1/opts.S;
+% opts.del = 1/50;
+% opts.bonus = @(s) 0.2 * (sin(4*pi*s*del) + 2); % bonus function
+% opts.r = @(s,a,M) - 1/2*(a*del - min(opts.bonus(s), 0.5*(1-M(s,:,:)*S/3))).^2 * del; % reward function
+% opts.P_det = @(s_con,a) s_con + a * del;
+% err = @(M,m_opt) squeeze(sum((repelem(M, 50/opts.S, 1)-m_opt).^2, 1));
+% fprintf('Running SemiGD with 10 states\n')
+% [M_cor, Q_cor] = gd(opts);
+% err_cor = err(M_cor, m_opt);
+% [V_gd_arr, u_gd_arr] = max(Q_gd_arr, [], 2);
+% err_V_gd = err(V_gd_arr, V_opt);
+% expl_gd = expl(squeeze(u_gd_arr),opts);
+
+%% Vanilla FPI
 opts.TK = opts.T;
 % opts.T = %1e3;%2e3;%400
 opts.T = opts.TK / opts.K;
 opts.policy = 'off';
 
-%% Vanilla FPI
 fprintf('Running FPI\n')
 opts.FP = false; opts.OMD = false;
 [M_fpi_arr, Q_fpi_arr] = qmi(opts);
@@ -164,8 +183,6 @@ title('Mean squared error', 'fontsize', 25)
 figure
 axis = gca;
 % Plot a line of constant 1e-4 for reference
-plot(expl(u_opt,opts)*ones(1:skip,opts.K), 'marker', 'none', 'DisplayName', 'Optimal')
-hold on
 varplot(expl_fpi(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'FPI')
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
 hold on
@@ -177,6 +194,8 @@ axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Chil
 hold on
 varplot(expl_gd(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'SemiSGD');
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
+hold on
+plot(expl(u_opt,opts)*ones(1:skip,opts.K), 'marker', 'none', 'DisplayName', 'Optimal')
 axis.YScale = 'log';
 % axis.XLim = [0, 200];
 % axis.YLim = [1e-2, 1];
