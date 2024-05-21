@@ -43,7 +43,7 @@ Q_arr = zeros(S,S,K+1,epochs);
 
 for e = 1:epochs
     fprintf('epoch: %d\n', e)
-		if ~isfield(opts, 'Q0') Q = rand(S,A) * 1e-9; else Q = opts.Q0; end %WARNING: a random Q0 makes a huge difference
+		if ~isfield(opts, 'Q0') Q = rand(S,A) * 1e-6; else Q = opts.Q0; end %WARNING: a random Q0 makes a huge difference
 		if ~isfield(opts, 'M0') M = abs(randn(S,1)); M = M./sum(M); else M = opts.M0; end
 		if ~isfield(opts, 's0') s1 = randi(S); else s1 = opts.s0; end
     s_con = s1;

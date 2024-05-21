@@ -28,7 +28,7 @@ M0 = M0 ./ sum(M0); % initial M
 % opts.s0 = 1;
 
 % Training parameters
-opts.epochs = 10;
+opts.epochs = 4;
 
 % Load reference solution
 if ~exist('m_opt', 'var')
