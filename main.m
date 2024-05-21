@@ -28,7 +28,7 @@ M0 = M0 ./ sum(M0); % initial M
 % opts.s0 = 1;
 
 % Training parameters
-opts.epochs = 4;
+opts.epochs = 20;
 
 % Load reference solution
 if ~exist('m_opt', 'var')
@@ -96,7 +96,7 @@ opts.alpha0 = 1e-3;
 opts.beta0 = 1e-3;
 % opts.T = 1.2e5;
 opts.T = 1e5;
-opts.K = 1e2; % the key is to keep T >= 1e3
+opts.K = 2e2; % the key is to keep T >= 1e3
 fprintf('Running SemiGD\n')
 [M_gd_arr, Q_gd_arr] = gd(opts);
 err_gd = err(M_gd_arr, m_opt);
@@ -139,6 +139,17 @@ err_fpi = err(M_fpi_arr, m_opt);
 err_V_fpi = err(V_fpi_arr, V_opt);
 expl_fpi = expl(squeeze(u_fpi_arr),opts);
 
+%% FPI + ER
+fprintf('Running FPI w/ ER\n')
+temp_hold = opts.temp;
+opts.temp = 1e4; %temp_hold / 1e6;
+[M_er, Q_er] = qmi(opts);
+err_er = err(M_er, m_opt);
+[V_er, u_er] = max(Q_er, [], 2);
+err_V_er = err(V_er, V_opt);
+expl_er = expl(squeeze(u_er),opts);
+opts.temp = temp_hold;
+
 %% FPI + FP
 fprintf('Running FPI w/ FP\n')
 opts.FP = true; opts.OMD = false;
@@ -159,10 +170,13 @@ expl_omd = expl(squeeze(u_omd_arr),opts);
 
 %% Plot MSE
 skip = 1;
-ci = 0.6;
+ci = 0.8;
 figure
 axis = gca;
 varplot(err_fpi(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'FPI')
+axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
+hold on
+varplot(err_er(1:skip:end,:), 'ci', ci,'marker', 'none', 'DisplayName', 'FPI + ER')
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
 hold on
 varplot(err_fp(1:skip:end,:), 'ci', ci,'marker', 'none', 'DisplayName', 'FPI + FP')
@@ -174,8 +188,8 @@ hold on
 varplot(err_gd(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'SemiSGD');
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
 axis.YScale = 'log';
-% axis.XLim = [0, 200];
-% axis.YLim = [1e-2, 1];
+axis.XLim = [0, 200];
+axis.YLim = [5e-5, 2e-2];
 legend('show', 'fontsize', 18)
 title('Mean squared error', 'fontsize', 25)
 
@@ -186,6 +200,9 @@ axis = gca;
 varplot(expl_fpi(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'FPI')
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
 hold on
+varplot(expl_er(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'FPI + ER')
+axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
+hold on
 varplot(expl_fp(1:skip:end,:), 'ci', ci,'marker', 'none', 'DisplayName', 'FPI + FP')
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
 hold on
@@ -194,31 +211,40 @@ axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Chil
 hold on
 varplot(expl_gd(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'SemiSGD');
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
-hold on
-plot(expl(u_opt,opts)*ones(1:skip,opts.K), 'marker', 'none', 'DisplayName', 'Optimal')
+% hold on
+% plot(expl(u_opt,opts)*ones(1:skip,opts.K), 'marker', 'none', 'DisplayName', 'Optimal')
 axis.YScale = 'log';
-% axis.XLim = [0, 200];
+axis.XLim = [0, 200];
 % axis.YLim = [1e-2, 1];
 legend('show', 'fontsize', 18)
-title('Exploitability', 'fontsize', 25)
+% title('Exploitability', 'fontsize', 25)
 
 %% Plot distribution
 figure
 axis = gca;
-plot(m_opt, 'marker', 'none', 'DisplayName', 'Optimal')
-hold on
-varplot(squeeze(M_gd_arr(:,end,:)), 'ci', ci, 'marker', 'none', 'DisplayName', 'SemiSGD')
+varplot(squeeze(M_fpi_arr(:,end,:)), 'ci', ci, 'marker', 'none', 'HandleVisibility', 'off')
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
 hold on
-varplot(squeeze(M_fp_arr(:,end,:)), 'ci', ci, 'marker', 'none', 'DisplayName', 'FPI + FP')
+varplot(squeeze(M_er(:,end,:)), 'ci', ci, 'marker', 'none', 'HandleVisibility', 'off')
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
 hold on
-varplot(squeeze(M_omd_arr(:,end,:)), 'ci', ci, 'marker', 'none', 'DisplayName', 'FPI + OMD')
+varplot(squeeze(M_fp_arr(:,end,:)), 'ci', ci, 'marker', 'none', 'HandleVisibility', 'off')
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
+hold on
+varplot(squeeze(M_omd_arr(:,end,:)), 'ci', ci, 'marker', 'none', 'HandleVisibility', 'off')
+axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
+hold on
+varplot(squeeze(M_gd_arr(:,end,:)), 'ci', ci, 'marker', 'none', 'HandleVisibility', 'off')
+axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
+hold on
+% Plot m_opt ussing dash and circlr marker
+plot(m_opt, 'LineStyle', '--', 'marker', 'none', 'MarkerSize', 8, 'DisplayName', 'MFE')
 % axis.XLim = [0, 200];
 % axis.YLim = [1e-2, 1];
+yt=arrayfun(@num2str,get(gca,'ytick')*S,'un',0)
+set(gca,'yticklabel',yt)
 legend('show', 'fontsize', 18)
-title('Learned distributions', 'fontsize', 25)
+% title('Learned distributions', 'fontsize', 25)
 
 %% Plot population distribution
 %{
