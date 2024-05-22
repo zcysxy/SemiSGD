@@ -28,7 +28,7 @@ M0 = M0 ./ sum(M0); % initial M
 % opts.s0 = 1;
 
 % Training parameters
-opts.epochs = 20;
+opts.epochs = 5;
 
 % Load reference solution
 if ~exist('m_opt', 'var')
@@ -41,28 +41,13 @@ end
 opts.m_opt = m_opt;
 
 % Helper functions
-scale = @(arr) (arr - min(arr)) ./ (max(arr) - min(arr));
 draw = @(p) find(cumsum(p) > rand(1), 1);
 opts.GLIE = false;
 opts.softmax = @(q, h) draw(exp((q-max(q))*h) / sum(exp((q-max(q))*h)));
-%NOTE: log of rewards
-% original, expl does not converge
-% opts.bonus = @(s) 0.2 * (sin(4*pi*s*del) + 1); % bonus function
-% opts.r = @(s,a,M) - 1/2*(a*del - opts.bonus(s) - 0.5*(1-M(s,:,:)*S/3)).^2 * del; % reward function
-% expl converges, but all methods perform well
-% opts.bonus = @(s) 0.2 * (sin(4*pi*s*del) + 2); % bonus function
-% opts.r = @(s,a,M) - 1/2*(a*del - opts.bonus(s) - 0.5*(1-M(s,:,:)*S/3)).^2 * del; % reward function
-% SGD performs the best for MSE, slightly worse than OMD in expl
-% opts.bonus = @(s) 0.2 * (sin(4*pi*s*del) + 1); % bonus function
-% opts.r = @(s,a,M) - 1/2*(a*del - max(opts.bonus(s), 0.5*(1-M(s,:,:)*S/3))).^2 * del; % reward function
-% Better!
-opts.bonus = @(s) 0.2 * (sin(4*pi*s*del) + 2); % bonus function
-opts.r = @(s,a,M) - 1/2*(a*del - min(opts.bonus(s), 0.5*(1-M(s,:,:)*S/3))).^2 * del; % reward function
-% opts.bonus = @(s)  (sin(4*pi*s*del) + 1); % bonus function
-% opts.r = @(s,a,M) - 1/2*(a*del - min(1, opts.bonus(s) * 0.5 *(1-M(s,:,:)*S/3))).^2 * del; % reward function
+opts.bonus = @(s) 0.2 * (sin(4*pi*s*del) + 2); % bonus function %WARNING: del-dependent
+opts.r = @(s,a,M) - 1/2*(a*del - min(opts.bonus(s), 0.5*(1-M(s,:,:)*50/3))).^2 / 50; % reward function %WARNING: del-dependent
 opts.method = 'det'; % 'sto'chastic or 'det'erministic
-opts.P_sto = @(s,a) mod(s + (a/S > rand()) - 1, S) + 1;
-% opts.P_det = @(s_con,a) mod(s_con + (a-1) * del - 1, S) + 1;
+opts.P_sto = @(s,a) mod(s + (a/S > rand()) - 1, S) + 1; %WARNING: not used
 opts.P_det = @(s_con,a) s_con + a * del;
 err = @(M,m_opt) squeeze(sum((circshift(M,0)-m_opt).^2, 1));
 opts.tol_ip = 1e-1; opts.tol_br = 1e-1;
@@ -70,33 +55,26 @@ opts.tol_ip = 1e-1; opts.tol_br = 1e-1;
 % br = @(M) (opts.bonus(1:S)' + 0.5*(1-M*S/3)) / del + 1;
 % expl = @(u) squeeze(sum(((squeeze(u) - br(ip(squeeze(u)),opts)) * del).^2,1));
 
-%% Run
-%% LFA
-%{
-opts.dim = 50;
-opts.method = 'det';
-% opts.temp = 1e1;
-% opts.temp = 1e-1;
-% opts.GLIE = true;
-opts.GLIE = false;
-opts.alpha0 = 1e-3;
-opts.beta0 = 1e-3;
-opts.T = 2e4;
-[err_gd, M_gd, Q_gd, V_gd] = gd_lfa(opts);
-%}
-
-
 %% SemiSGD
 opts.method = 'det';
-% opts.temp = 1e1;
+opts.temp = 1e9;
 % opts.GLIE = true;
-opts.temp = 1e9; % Decrease the temp to make SGD surpass OMD
+% opts.temp = 1e9; % Decrease the temp to make SGD surpass OMD
 opts.GLIE = false;
 opts.alpha0 = 1e-3;
 opts.beta0 = 1e-3;
 % opts.T = 1.2e5;
-opts.T = 1e5;
-opts.K = 2e2; % the key is to keep T >= 1e3
+opts.T = 1e4;
+opts.K = 1e2; % the key is to keep T >= 1e3
+opts.Q0 = Inf; opts.M0 = Inf, opts.s0 = Inf;
+opts = rmfield(opts, {'Q0', 'M0', 's0'});
+opts.S = 50;
+opts.A = 50;
+del = 1/opts.S;
+opts.bonus = @(s) 0.2 * (sin(4*pi*s*del) + 2); % bonus function
+opts.r = @(s,a,M) - 1/2*(a*del - min(opts.bonus(s), 0.5*(1-M(s,:,:)*50/3))).^2 / 50; % reward function
+opts.P_det = @(s_con,a) s_con + a * del;
+err = @(M,m_opt) squeeze(sum(abs(repelem(M, 50/opts.S, 1)-m_opt), 1));
 fprintf('Running SemiGD\n')
 [M_gd_arr, Q_gd_arr] = gd(opts);
 err_gd = err(M_gd_arr, m_opt);
@@ -108,92 +86,58 @@ expl_gd = expl(squeeze(u_gd_arr),opts);
 % [9,false] = [4,true]: FPI & OMD oscilate, GD drastically diverge from opt, FP slowly
 
 %% SemiSGD w/ coarser grid
-% opts.Q0 = Inf; opts.M0 = Inf, opts.s0 = Inf;
-% opts = rmfield(opts, {'Q0', 'M0', 's0'});
-% opts.S = 50;
-% opts.A = 50;
-% del = 1/opts.S;
-% opts.del = 1/50;
-% opts.bonus = @(s) 0.2 * (sin(4*pi*s*del) + 2); % bonus function
-% opts.r = @(s,a,M) - 1/2*(a*del - min(opts.bonus(s), 0.5*(1-M(s,:,:)*S/3))).^2 * del; % reward function
-% opts.P_det = @(s_con,a) s_con + a * del;
-% err = @(M,m_opt) squeeze(sum((repelem(M, 50/opts.S, 1)-m_opt).^2, 1));
-% fprintf('Running SemiGD with 10 states\n')
-% [M_cor, Q_cor] = gd(opts);
-% err_cor = err(M_cor, m_opt);
+dim = 25;
+opts.Q0 = Inf; opts.M0 = Inf, opts.s0 = Inf;
+opts = rmfield(opts, {'Q0', 'M0', 's0'});
+opts.S = dim;
+opts.A = dim;
+del = 1/opts.S;
+opts.del = 1/50;
+opts.bonus = @(s) 0.2 * (sin(4*pi*s*del) + 2); % bonus function
+opts.r = @(s,a,M) - 1/2*(a*del - min(opts.bonus(s), 0.5*(1-M(s,:,:)*opts.S/3))).^2 / 50; % reward function
+opts.P_det = @(s_con,a) s_con + a * del;
+err = @(M,m_opt) squeeze(sum(abs(repelem(M, 50/opts.S, 1) * opts.S / 50 -m_opt), 1));
+fprintf('Running SemiGD with 10 states\n')
+[M_cor, Q_cor] = gd(opts);
+err_cor = err(M_cor, m_opt);
 % [V_gd_arr, u_gd_arr] = max(Q_gd_arr, [], 2);
 % err_V_gd = err(V_gd_arr, V_opt);
 % expl_gd = expl(squeeze(u_gd_arr),opts);
 
-%% Vanilla FPI
-opts.TK = opts.T;
-% opts.T = %1e3;%2e3;%400
-opts.T = opts.TK / opts.K;
-opts.policy = 'off';
-
-fprintf('Running FPI\n')
-opts.FP = false; opts.OMD = false;
-[M_fpi_arr, Q_fpi_arr] = qmi(opts);
-err_fpi = err(M_fpi_arr, m_opt);
-[V_fpi_arr, u_fpi_arr] = max(Q_fpi_arr, [], 2);
-err_V_fpi = err(V_fpi_arr, V_opt);
-expl_fpi = expl(squeeze(u_fpi_arr),opts);
-
-%% FPI + ER
-fprintf('Running FPI w/ ER\n')
-temp_hold = opts.temp;
-opts.temp = 1e4; %temp_hold / 1e6;
-[M_er, Q_er] = qmi(opts);
-err_er = err(M_er, m_opt);
-[V_er, u_er] = max(Q_er, [], 2);
-err_V_er = err(V_er, V_opt);
-expl_er = expl(squeeze(u_er),opts);
-opts.temp = temp_hold;
-
-%% FPI + FP
-fprintf('Running FPI w/ FP\n')
-opts.FP = true; opts.OMD = false;
-[M_fp_arr, Q_fp_arr] = qmi(opts);
-err_fp = err(M_fp_arr, m_opt);
-[V_fp_arr, u_fp_arr] = max(Q_fp_arr, [], 2);
-err_V_fp = err(V_fp_arr, V_opt);
-expl_fp = expl(squeeze(u_fp_arr),opts);
-
-%% FPI + OMD
-fprintf('Running FPI w/ OMD\n')
-opts.FP = false; opts.OMD = true;
-[M_omd_arr, Q_omd_arr] = qmi(opts);
-err_omd = err(M_omd_arr, m_opt);
-[V_omd_arr, u_omd_arr] = max(Q_omd_arr, [], 2);
-err_V_omd = err(V_omd_arr, V_opt);
-expl_omd = expl(squeeze(u_omd_arr),opts);
+%% SemiSGD w/ LFA
+opts.Q0 = Inf; opts.M0 = Inf, opts.s0 = Inf;
+opts = rmfield(opts, {'Q0', 'M0', 's0'});
+opts.S = dim;
+opts.A = dim;
+opts.dim = dim;
+del = 1/opts.S;
+opts.del = 1/50;
+opts.bonus = @(s) 0.2 * (sin(4*pi*s*del) + 2); % bonus function
+opts.r = @(s,a,M) - 1/2*(a*del - min(opts.bonus(s), 0.5*(1-M(s,:,:)*opts.S/3))).^2 / 50; % reward function
+opts.P_det = @(s_con,a) s_con + a * del;
+err = @(M,m_opt) squeeze(sum(abs(M-m_opt), 1));
+fprintf('Running SemiGD with 10 states\n')
+[e_lfa, Q_lfa,M_lfa] = gd_lfa(opts);
+err_lfa = err(M_lfa, m_opt);
 
 %% Plot MSE
 skip = 1;
 ci = 0.8;
-figure
+figure; hold on;
 axis = gca;
-varplot(err_fpi(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'FPI')
+varplot(err_cor(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'grid')
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
-hold on
-varplot(err_er(1:skip:end,:), 'ci', ci,'marker', 'none', 'DisplayName', 'FPI + ER')
+varplot(err_gd(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', '50');
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
-hold on
-varplot(err_fp(1:skip:end,:), 'ci', ci,'marker', 'none', 'DisplayName', 'FPI + FP')
-axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
-hold on
-varplot(err_omd(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'FPI + OMD')
-axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
-hold on
-varplot(err_gd(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'SemiSGD');
+varplot(err_lfa(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'LFA')
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
 axis.YScale = 'log';
-axis.XLim = [0, 200];
-axis.YLim = [5e-5, 2e-2];
+% axis.XLim = [0, 200];
 legend('show', 'fontsize', 18)
 title('Mean squared error', 'fontsize', 25)
 
 %% Plot exploitability
+%{
 figure
 axis = gca;
 % Plot a line of constant 1e-4 for reference
@@ -218,25 +162,17 @@ axis.XLim = [0, 200];
 % axis.YLim = [1e-2, 1];
 legend('show', 'fontsize', 18)
 % title('Exploitability', 'fontsize', 25)
+%}
 
 %% Plot distribution
-figure
+figure; hold on;
 axis = gca;
-varplot(squeeze(M_fpi_arr(:,end,:)), 'ci', ci, 'marker', 'none', 'HandleVisibility', 'off')
+varplot(squeeze(M_gd_arr(:,end,:)), 'ci', ci, 'marker', 'none', 'DisplayName', '50')
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
-hold on
-varplot(squeeze(M_er(:,end,:)), 'ci', ci, 'marker', 'none', 'HandleVisibility', 'off')
+varplot(squeeze(M_lfa(:,end,:)), 'ci', ci, 'marker', 'none', 'DisplayName', 'LFA')
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
-hold on
-varplot(squeeze(M_fp_arr(:,end,:)), 'ci', ci, 'marker', 'none', 'HandleVisibility', 'off')
+varplot(squeeze(repelem(M_cor(:,end,:), 50/dim, 1) / (50/dim)), 'ci', ci, 'marker', 'none', 'DisplayName', 'grid')
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
-hold on
-varplot(squeeze(M_omd_arr(:,end,:)), 'ci', ci, 'marker', 'none', 'HandleVisibility', 'off')
-axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
-hold on
-varplot(squeeze(M_gd_arr(:,end,:)), 'ci', ci, 'marker', 'none', 'HandleVisibility', 'off')
-axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
-hold on
 % Plot m_opt ussing dash and circlr marker
 plot(m_opt, 'LineStyle', '--', 'marker', 'none', 'MarkerSize', 8, 'DisplayName', 'MFE')
 % axis.XLim = [0, 200];
