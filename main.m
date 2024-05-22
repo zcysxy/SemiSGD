@@ -3,7 +3,7 @@ clc; close all;
 % Defaults for axes
 set(0, 'DefaultAxesFontSize', 15, 'DefaultAxesFontName', 'times', 'DefaultAxesFontWeight', 'bold', 'DefaultAxesLineWidth', 1.5)
 % Defaults for plots
-set(0, 'DefaultLineLineWidth', 2, 'DefaultAxesLineStyleOrder', '.-', 'DefaultLineMarkerSize', 20)
+set(0, 'DefaultLineLineWidth', 4, 'DefaultAxesLineStyleOrder', '.-', 'DefaultLineMarkerSize', 20)
 set(0, 'DefaultLineMarker', 'none')
 % Defaults for text
 set(0, 'DefaultTextInterpreter', 'latex', 'DefaultTextFontName', 'times', 'DefaultTextFontWeight', 'bold')
@@ -28,7 +28,7 @@ M0 = M0 ./ sum(M0); % initial M
 % opts.s0 = 1;
 
 % Training parameters
-opts.epochs = 5;
+opts.epochs = 10;
 
 % Load reference solution
 if ~exist('m_opt', 'var')
@@ -76,17 +76,17 @@ opts.r = @(s,a,M) - 1/2*(a*del - min(opts.bonus(s), 0.5*(1-M(s,:,:)*50/3))).^2 /
 opts.P_det = @(s_con,a) s_con + a * del;
 err = @(M,m_opt) squeeze(sum(abs(repelem(M, 50/opts.S, 1)-m_opt), 1));
 fprintf('Running SemiGD\n')
-[M_gd_arr, Q_gd_arr] = gd(opts);
-err_gd = err(M_gd_arr, m_opt);
-[V_gd_arr, u_gd_arr] = max(Q_gd_arr, [], 2);
-err_V_gd = err(V_gd_arr, V_opt);
-expl_gd = expl(squeeze(u_gd_arr),opts);
+% [M_gd_arr, Q_gd_arr] = gd(opts);
+% err_gd = err(M_gd_arr, m_opt);
+% [V_gd_arr, u_gd_arr] = max(Q_gd_arr, [], 2);
+% err_V_gd = err(V_gd_arr, V_opt);
+% expl_gd = expl(squeeze(u_gd_arr),opts);
 % NOTE: log: 
 % [1,true]: no oscillation, FPI=GD, OMD=FP
 % [9,false] = [4,true]: FPI & OMD oscilate, GD drastically diverge from opt, FP slowly
 
 %% SemiSGD w/ coarser grid
-dim = 25;
+dim = 2;
 opts.Q0 = Inf; opts.M0 = Inf, opts.s0 = Inf;
 opts = rmfield(opts, {'Q0', 'M0', 's0'});
 opts.S = dim;
@@ -127,14 +127,14 @@ figure; hold on;
 axis = gca;
 varplot(err_cor(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'grid')
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
-varplot(err_gd(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', '50');
-axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
+% varplot(err_gd(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', '50');
+% axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
 varplot(err_lfa(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'LFA')
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
 axis.YScale = 'log';
-% axis.XLim = [0, 200];
+axis.XLim = [0, 100];
 legend('show', 'fontsize', 18)
-title('Mean squared error', 'fontsize', 25)
+% title('Mean squared error', 'fontsize', 25)
 
 %% Plot exploitability
 %{
@@ -167,18 +167,20 @@ legend('show', 'fontsize', 18)
 %% Plot distribution
 figure; hold on;
 axis = gca;
-varplot(squeeze(M_gd_arr(:,end,:)), 'ci', ci, 'marker', 'none', 'DisplayName', '50')
+% varplot(squeeze(M_gd_arr(:,end,:)), 'ci', ci, 'marker', 'none', 'DisplayName', '50')
+% axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
+varplot(squeeze(repelem(M_cor(:,end,:), 50/dim, 1) / (50/dim)), 'ci', ci, 'marker', 'none', 'DisplayName', 'grid')
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
 varplot(squeeze(M_lfa(:,end,:)), 'ci', ci, 'marker', 'none', 'DisplayName', 'LFA')
-axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
-varplot(squeeze(repelem(M_cor(:,end,:), 50/dim, 1) / (50/dim)), 'ci', ci, 'marker', 'none', 'DisplayName', 'grid')
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
 % Plot m_opt ussing dash and circlr marker
 plot(m_opt, 'LineStyle', '--', 'marker', 'none', 'MarkerSize', 8, 'DisplayName', 'MFE')
 % axis.XLim = [0, 200];
 % axis.YLim = [1e-2, 1];
 yt=arrayfun(@num2str,get(gca,'ytick')*S,'un',0)
-set(gca,'yticklabel',yt)
+xt=arrayfun(@num2str,get(gca,'xtick')/50,'un',0)
+set(gca,'yticklabel',yt);
+set(gca,'xticklabel',xt);
 legend('show', 'fontsize', 18)
 % title('Learned distributions', 'fontsize', 25)
 
@@ -203,3 +205,8 @@ legend('show')
 % plot_list = {'T'};
 % save_flag = false;
 % plot_results
+
+mean(err_cor(:,end,:))
+std(err_cor(:,end,:))
+mean(err_lfa(:,end,:))
+std(err_lfa(:,end,:))
