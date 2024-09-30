@@ -3,7 +3,8 @@ clc; close all;
 % Defaults for axes
 set(0, 'DefaultAxesFontSize', 15, 'DefaultAxesFontName', 'times', 'DefaultAxesFontWeight', 'bold', 'DefaultAxesLineWidth', 1.5)
 % Defaults for plots
-set(0, 'DefaultLineLineWidth', 2, 'DefaultAxesLineStyleOrder', '.-', 'DefaultLineMarkerSize', 20)
+set(0, 'DefaultLineLineWidth', 4, 'DefaultAxesLineStyleOrder', '.-', 'DefaultL
+ineMarkerSize', 20)
 set(0, 'DefaultLineMarker', 'none')
 % Defaults for text
 set(0, 'DefaultTextInterpreter', 'latex', 'DefaultTextFontName', 'times', 'DefaultTextFontWeight', 'bold')
@@ -191,7 +192,7 @@ axis.YScale = 'log';
 axis.XLim = [0, 200];
 axis.YLim = [5e-5, 2e-2];
 legend('show', 'fontsize', 18)
-title('Mean squared error', 'fontsize', 25)
+% title('Mean squared error', 'fontsize', 25)
 
 %% Plot exploitability
 figure
