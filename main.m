@@ -34,8 +34,9 @@ opts.epochs = 10;
 if ~exist('m_opt', 'var')
 	if ~exist('opt_model.mat', 'file')
 		opt
+	else
+		load('opt_model.mat')
 	end
-	load('opt_model.mat')
 	m_opt = reshape(m_opt, [S,1]);
 end
 opts.m_opt = m_opt;
@@ -206,7 +207,7 @@ legend('show')
 % save_flag = false;
 % plot_results
 
-mean(err_cor(:,end,:))
-std(err_cor(:,end,:))
-mean(err_lfa(:,end,:))
-std(err_lfa(:,end,:))
+% mean(err_cor(:,end,:))
+% std(err_cor(:,end,:))
+% mean(err_lfa(:,end,:))
+% std(err_lfa(:,end,:))
