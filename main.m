@@ -19,7 +19,7 @@ opts.del = 1/S;  % state's gap
 del = opts.del;
 addpath('data')
 if ~exist('tras', 'var')
-    load('tras.mat')
+    load('tras.mat');
 end
 M0 = cos(linspace(0,1,S))';
 M0 = M0 ./ sum(M0); % initial M
@@ -33,9 +33,9 @@ opts.epochs = 10;
 % Load reference solution
 if ~exist('m_opt', 'var')
 	if ~exist('opt_model.mat', 'file')
-		opt
+		opt;
 	else
-		load('opt_model.mat')
+		load('opt_model.mat');
 	end
 	m_opt = reshape(m_opt, [S,1]);
 end
@@ -67,7 +67,7 @@ opts.beta0 = 1e-3;
 % opts.T = 1.2e5;
 opts.T = 1e4;
 opts.K = 1e2; % the key is to keep T >= 1e3
-opts.Q0 = Inf; opts.M0 = Inf, opts.s0 = Inf;
+opts.Q0 = Inf; opts.M0 = Inf; opts.s0 = Inf;
 opts = rmfield(opts, {'Q0', 'M0', 's0'});
 opts.S = 200;
 opts.A = 200;
@@ -76,7 +76,6 @@ opts.bonus = @(s) 0.2 * (sin(4*pi*s*del) + 2); % bonus function
 opts.r = @(s,a,M) - 1/2*(a*del - min(opts.bonus(s), 0.5*(1-M(s,:,:)*200/3))).^2 / 200; % reward function
 opts.P_det = @(s_con,a) s_con + a * del;
 err = @(M,m_opt) squeeze(sum(abs(repelem(M, 200/opts.S, 1)-m_opt), 1));
-fprintf('Running SemiGD\n')
 % [M_gd_arr, Q_gd_arr] = gd(opts);
 % err_gd = err(M_gd_arr, m_opt);
 % [V_gd_arr, u_gd_arr] = max(Q_gd_arr, [], 2);
@@ -87,8 +86,8 @@ fprintf('Running SemiGD\n')
 % [9,false] = [4,true]: FPI & OMD oscilate, GD drastically diverge from opt, FP slowly
 
 %% SemiSGD w/ coarser grid
-dim = 20;
-opts.Q0 = Inf; opts.M0 = Inf, opts.s0 = Inf;
+% dim = 20;
+opts.Q0 = Inf; opts.M0 = Inf; opts.s0 = Inf;
 opts = rmfield(opts, {'Q0', 'M0', 's0'});
 opts.S = dim;
 opts.A = dim;
@@ -98,7 +97,7 @@ opts.bonus = @(s) 0.2 * (sin(4*pi*s*del) + 2); % bonus function
 opts.r = @(s,a,M) - 1/2*(a*del - min(opts.bonus(s), 0.5*(1-M(s,:,:)*opts.S/3))).^2 / 200; % reward function
 opts.P_det = @(s_con,a) s_con + a * del;
 err = @(M,m_opt) squeeze(sum(abs(M-m_opt), 1));
-fprintf('Running SemiGD with 10 states\n')
+fprintf('Running SemiGD with grid discretization\n')
 [M_cor, Q_cor] = gd(opts);
 M_cor = repelem(M_cor, 200/opts.S, 1) * opts.S / 200;
 err_cor = err(M_cor, m_opt);
@@ -107,7 +106,7 @@ err_cor = err(M_cor, m_opt);
 % expl_gd = expl(squeeze(u_gd_arr),opts);
 
 %% SemiSGD w/ LFA
-opts.Q0 = Inf; opts.M0 = Inf, opts.s0 = Inf;
+opts.Q0 = Inf; opts.M0 = Inf; opts.s0 = Inf;
 opts = rmfield(opts, {'Q0', 'M0', 's0'});
 opts.S = dim;
 opts.A = dim;
@@ -117,7 +116,7 @@ opts.del = 1/200;
 opts.bonus = @(s) 0.2 * (sin(4*pi*s*del) + 2); % bonus function
 opts.r = @(s,a,M) - 1/2*(a*del - min(opts.bonus(s), 0.5*(1-M(s,:,:)*opts.S/3))).^2 / 200; % reward function
 opts.P_det = @(s_con,a) s_con + a * del;
-fprintf('Running SemiGD with 10 states\n')
+fprintf('Running SemiGD with LFA\n')
 [e_lfa, Q_lfa,M_lfa] = gd_lfa(opts);
 err_lfa = err(M_lfa, m_opt);
 
@@ -182,8 +181,8 @@ axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Chil
 plot(m_opt, 'LineStyle', '--', 'marker', 'none', 'MarkerSize', 8, 'DisplayName', 'MFE')
 % axis.XLim = [0, 200];
 % axis.YLim = [1e-2, 1];
-yt=arrayfun(@num2str,get(gca,'ytick')*S,'un',0)
-xt=arrayfun(@num2str,get(gca,'xtick')/200,'un',0)
+yt=arrayfun(@num2str,get(gca,'ytick')*S,'un',0);
+xt=arrayfun(@num2str,get(gca,'xtick')/200,'un',0);
 set(gca,'yticklabel',yt);
 set(gca,'xticklabel',xt);
 legend('show', 'fontsize', 18, 'location', 'northwest')
@@ -215,7 +214,7 @@ legend('show')
 % save_flag = false;
 % plot_results
 
-% mean(err_cor(:,end,:))
-% std(err_cor(:,end,:))
-% mean(err_lfa(:,end,:))
-% std(err_lfa(:,end,:))
+err_cor_mean = mean(err_cor(:,end,:));
+err_cor_std = std(err_cor(:,end,:));
+err_lfa_mean = mean(err_lfa(:,end,:));
+err_lfa_std = std(err_lfa(:,end,:));
