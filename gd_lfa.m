@@ -39,14 +39,14 @@ alpha0 = opts.alpha0; beta0 = opts.beta0;
 temp = opts.temp;
 
 eta_arr = zeros(dim,K+1,epochs);
-M_arr = zeros(50,K+1,epochs);
+M_arr = zeros(200,K+1,epochs);
 theta_arr = zeros(S,S,K+1,epochs);
 
 % Helper functions
 psi = feat(dim);
 C_psi = integral(@(s) psi(s) *  psi(s)', 0, 1, 'ArrayValued', true);
 get_dist_for_r = @(eta) (psi((1:S)/S)' * eta) / sum(psi((1:S)/S)' * eta);
-get_dist = @(eta) (psi((1:50)/50)' * eta) / sum(psi((1:50)/50)' * eta);
+get_dist = @(eta) (psi((1:200)/200)' * eta) / sum(psi((1:200)/200)' * eta);
 
 for e = 1:epochs
     fprintf('epoch: %d\n', e)

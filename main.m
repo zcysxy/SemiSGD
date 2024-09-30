@@ -11,7 +11,7 @@ set(0, 'DefaultTextInterpreter', 'latex', 'DefaultTextFontName', 'times', 'Defau
 set(0, 'DefaultLegendInterpreter', 'latex')
 
 % Problem parameters
-opts.S = 50;     % state space
+opts.S = 200;     % state space
 S = opts.S;
 opts.A = S;      % action space
 A = opts.A;
@@ -46,7 +46,7 @@ draw = @(p) find(cumsum(p) > rand(1), 1);
 opts.GLIE = false;
 opts.softmax = @(q, h) draw(exp((q-max(q))*h) / sum(exp((q-max(q))*h)));
 opts.bonus = @(s) 0.2 * (sin(4*pi*s*del) + 2); % bonus function %WARNING: del-dependent
-opts.r = @(s,a,M) - 1/2*(a*del - min(opts.bonus(s), 0.5*(1-M(s,:,:)*50/3))).^2 / 50; % reward function %WARNING: del-dependent
+opts.r = @(s,a,M) - 1/2*(a*del - min(opts.bonus(s), 0.5*(1-M(s,:,:)*200/3))).^2 / 200; % reward function %WARNING: del-dependent
 opts.method = 'det'; % 'sto'chastic or 'det'erministic
 opts.P_sto = @(s,a) mod(s + (a/S > rand()) - 1, S) + 1; %WARNING: not used
 opts.P_det = @(s_con,a) s_con + a * del;
@@ -69,13 +69,13 @@ opts.T = 1e4;
 opts.K = 1e2; % the key is to keep T >= 1e3
 opts.Q0 = Inf; opts.M0 = Inf, opts.s0 = Inf;
 opts = rmfield(opts, {'Q0', 'M0', 's0'});
-opts.S = 50;
-opts.A = 50;
+opts.S = 200;
+opts.A = 200;
 del = 1/opts.S;
 opts.bonus = @(s) 0.2 * (sin(4*pi*s*del) + 2); % bonus function
-opts.r = @(s,a,M) - 1/2*(a*del - min(opts.bonus(s), 0.5*(1-M(s,:,:)*50/3))).^2 / 50; % reward function
+opts.r = @(s,a,M) - 1/2*(a*del - min(opts.bonus(s), 0.5*(1-M(s,:,:)*200/3))).^2 / 200; % reward function
 opts.P_det = @(s_con,a) s_con + a * del;
-err = @(M,m_opt) squeeze(sum(abs(repelem(M, 50/opts.S, 1)-m_opt), 1));
+err = @(M,m_opt) squeeze(sum(abs(repelem(M, 200/opts.S, 1)-m_opt), 1));
 fprintf('Running SemiGD\n')
 % [M_gd_arr, Q_gd_arr] = gd(opts);
 % err_gd = err(M_gd_arr, m_opt);
@@ -87,19 +87,20 @@ fprintf('Running SemiGD\n')
 % [9,false] = [4,true]: FPI & OMD oscilate, GD drastically diverge from opt, FP slowly
 
 %% SemiSGD w/ coarser grid
-dim = 2;
+dim = 20;
 opts.Q0 = Inf; opts.M0 = Inf, opts.s0 = Inf;
 opts = rmfield(opts, {'Q0', 'M0', 's0'});
 opts.S = dim;
 opts.A = dim;
 del = 1/opts.S;
-opts.del = 1/50;
+opts.del = 1/200;
 opts.bonus = @(s) 0.2 * (sin(4*pi*s*del) + 2); % bonus function
-opts.r = @(s,a,M) - 1/2*(a*del - min(opts.bonus(s), 0.5*(1-M(s,:,:)*opts.S/3))).^2 / 50; % reward function
+opts.r = @(s,a,M) - 1/2*(a*del - min(opts.bonus(s), 0.5*(1-M(s,:,:)*opts.S/3))).^2 / 200; % reward function
 opts.P_det = @(s_con,a) s_con + a * del;
-err = @(M,m_opt) squeeze(sum(abs(repelem(M, 50/opts.S, 1) * opts.S / 50 -m_opt), 1));
+err = @(M,m_opt) squeeze(sum(abs(M-m_opt), 1));
 fprintf('Running SemiGD with 10 states\n')
 [M_cor, Q_cor] = gd(opts);
+M_cor = repelem(M_cor, 200/opts.S, 1) * opts.S / 200;
 err_cor = err(M_cor, m_opt);
 % [V_gd_arr, u_gd_arr] = max(Q_gd_arr, [], 2);
 % err_V_gd = err(V_gd_arr, V_opt);
@@ -112,11 +113,10 @@ opts.S = dim;
 opts.A = dim;
 opts.dim = dim;
 del = 1/opts.S;
-opts.del = 1/50;
+opts.del = 1/200;
 opts.bonus = @(s) 0.2 * (sin(4*pi*s*del) + 2); % bonus function
-opts.r = @(s,a,M) - 1/2*(a*del - min(opts.bonus(s), 0.5*(1-M(s,:,:)*opts.S/3))).^2 / 50; % reward function
+opts.r = @(s,a,M) - 1/2*(a*del - min(opts.bonus(s), 0.5*(1-M(s,:,:)*opts.S/3))).^2 / 200; % reward function
 opts.P_det = @(s_con,a) s_con + a * del;
-err = @(M,m_opt) squeeze(sum(abs(M-m_opt), 1));
 fprintf('Running SemiGD with 10 states\n')
 [e_lfa, Q_lfa,M_lfa] = gd_lfa(opts);
 err_lfa = err(M_lfa, m_opt);
@@ -124,17 +124,21 @@ err_lfa = err(M_lfa, m_opt);
 %% Plot MSE
 skip = 1;
 ci = 0.8;
-figure; hold on;
+figure('visible', 'off'); hold on;
 axis = gca;
 varplot(err_cor(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'grid')
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
-% varplot(err_gd(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', '50');
+% varplot(err_gd(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', '200');
 % axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
 varplot(err_lfa(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'LFA')
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
 axis.YScale = 'log';
 axis.XLim = [0, 100];
 legend('show', 'fontsize', 18)
+xlabel("Iterations", 'fontsize', 18)
+ylabel("MSE", 'fontsize', 18)
+exportgraphics(gca, sprintf('fig/lfa/mse_%d.png', dim), 'Resolution', 900)
+savefig(sprintf('fig/lfa/mse_%d.fig', dim))
 % title('Mean squared error', 'fontsize', 25)
 
 %% Plot exploitability
@@ -166,11 +170,11 @@ legend('show', 'fontsize', 18)
 %}
 
 %% Plot distribution
-figure; hold on;
+figure('visible', 'off'); hold on;
 axis = gca;
-% varplot(squeeze(M_gd_arr(:,end,:)), 'ci', ci, 'marker', 'none', 'DisplayName', '50')
+% varplot(squeeze(M_gd_arr(:,end,:)), 'ci', ci, 'marker', 'none', 'DisplayName', '200')
 % axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
-varplot(squeeze(repelem(M_cor(:,end,:), 50/dim, 1) / (50/dim)), 'ci', ci, 'marker', 'none', 'DisplayName', 'grid')
+varplot(squeeze(M_cor(:,end,:)), 'ci', ci, 'marker', 'none', 'DisplayName', 'grid')
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
 varplot(squeeze(M_lfa(:,end,:)), 'ci', ci, 'marker', 'none', 'DisplayName', 'LFA')
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
@@ -179,10 +183,14 @@ plot(m_opt, 'LineStyle', '--', 'marker', 'none', 'MarkerSize', 8, 'DisplayName',
 % axis.XLim = [0, 200];
 % axis.YLim = [1e-2, 1];
 yt=arrayfun(@num2str,get(gca,'ytick')*S,'un',0)
-xt=arrayfun(@num2str,get(gca,'xtick')/50,'un',0)
+xt=arrayfun(@num2str,get(gca,'xtick')/200,'un',0)
 set(gca,'yticklabel',yt);
 set(gca,'xticklabel',xt);
-legend('show', 'fontsize', 18)
+legend('show', 'fontsize', 18, 'location', 'northwest')
+xlabel("Iterations", 'fontsize', 18)
+ylabel("Density", 'fontsize', 18)
+exportgraphics(gca, sprintf('fig/lfa/mu_%d.png', dim), 'Resolution', 900)
+savefig(sprintf('fig/lfa/mu_%d.fig', dim))
 % title('Learned distributions', 'fontsize', 25)
 
 %% Plot population distribution

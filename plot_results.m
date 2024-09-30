@@ -52,7 +52,7 @@ end
 %%
 if ismember('error', plot_list)
 %{
-f = figure("Position", [100,100,1100,500]);
+f = figure("Position", [100,100,1100,2000]);
 t = tiledlayout(1,2,"TileSpacing","compact");
 nexttile
 semilogy(2:K/2,err(2:K/2), 'Marker', 'none')

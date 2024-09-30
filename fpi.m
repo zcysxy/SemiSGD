@@ -7,7 +7,7 @@ function [err,expl,M_avg,V_avg,v_avg] = fpi(opts)
     if ~isfield(opts, 'bonus'), error("Missing bonus!"); end
     if ~isfield(opts, 'del'), opts.del = 1/opts.S; end
     if ~isfield(opts, 'T'), opts.T = 1e4; end
-    if ~isfield(opts, 'K'), opts.K = 50; end
+    if ~isfield(opts, 'K'), opts.K = 200; end
     if ~isfield(opts, 'V0'), opts.V0 = zeros(opts.S,1); end
     if ~isfield(opts, 'epochs'), opts.epochs = 10; end
 

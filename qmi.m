@@ -75,7 +75,7 @@ for e = 1:epochs
             % Update Q
             % alpha = 1/(w*(t+c0));
             % alpha = 1e-2/(t*k * threshold + 1);
-            % beta = 1/t/(k * (1 + 50 * threshold));
+            % beta = 1/t/(k * (1 + 200 * threshold));
             % alpha = 0.1 / ((t) * threshold + 1);
             alpha = 1e-3;
             % beta = 1/t; %!! WARNING: let step sizes be consistent
