@@ -43,7 +43,7 @@ M0 = M0 ./ sum(M0); % initial M
 % opts.bonus = @(s) 0.1 * exp(s*del); % bonus function
 % opts.pop_center = @(M) sum(M .* (1:opts.S)') * del;
 opts.radius = 5;
-opts.r = @(s,a,M) - ((a*del).^2 + 0.5 * (1 - neighbor_center(M,s,opts)).^2); % reward function
+opts.r = @(s,a,M) - ((a*del).^2 + 0.5 * (1 - neighbor_center(M,s,opts)).^2) * del; % reward function
 % opts.bonus = @(s)  (sin(4*pi*s*del) + 1); % bonus function
 % opts.r = @(s,a,M) - 1/2*(a*del - min(1, opts.bonus(s) * 0.5 *(1-M(s,:,:)*S/3))).^2 * del; % reward function
 
@@ -97,13 +97,14 @@ opts.method = 'det';
 % opts.temp = 1e1;
 % opts.GLIE = true;
 % opts.temp = 1e9; % Decrease the temp to make SGD surpass OMD
-opts.temp = 1e3; % Decrease the temp to make SGD surpass OMD
+opts.temp = 1e6; % Decrease the temp to make SGD surpass OMD
 opts.GLIE = false;
+% step size
 opts.alpha0 = 1e-3;
 opts.beta0 = 1e-3;
 % opts.T = 1.2e5;
-opts.T = 2e5;
-opts.K = 2e3; % the key is to keep T >= 1e3
+opts.T = 1e5;
+opts.K = 2e2; % the key is to keep T >= 1e3
 fprintf('Running SemiGD\n')
 [M_gd_arr, Q_gd_arr] = gd(opts);
 err_gd = err(M_gd_arr, m_opt);

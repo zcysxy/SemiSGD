@@ -45,7 +45,7 @@ Q_arr = zeros(S,S,K,epochs);
 
 for e = 1:epochs
     fprintf("epoch: %d\n", e)
-		if ~isfield(opts, 'Q0') Q = -1e2 - rand(S,A); else Q = opts.Q0; end
+		if ~isfield(opts, 'Q0') Q = -1e1 - rand(S,A); else Q = opts.Q0; end
 		if ~isfield(opts, 'M0') M = abs(randn(S,1)); M = M./sum(M); else M = opts.M0; end
 		if ~isfield(opts, 's0') s1 = randi(S); else s1 = opts.s0; end
     s_con = s1;
