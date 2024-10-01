@@ -17,7 +17,8 @@ function [V, u] = br(M,opts,tol)
 
 	S = size(M, 1);
 	A = reshape(1:S,S,1);
-	V = -1e5 * ones(size(M)); % initial value function
+	% V = -1e5 * rand(size(M)); % initial value function
+	V = -1e2 + abs(ones(size(M))); % initial value function
 
 	iter = 1;
 	while iter <= 1e3

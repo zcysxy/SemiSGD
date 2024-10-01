@@ -3,8 +3,7 @@ clc; close all;
 % Defaults for axes
 set(0, 'DefaultAxesFontSize', 15, 'DefaultAxesFontName', 'times', 'DefaultAxesFontWeight', 'bold', 'DefaultAxesLineWidth', 1.5)
 % Defaults for plots
-set(0, 'DefaultLineLineWidth', 4, 'DefaultAxesLineStyleOrder', '.-', 'DefaultL
-ineMarkerSize', 20)
+set(0, 'DefaultLineLineWidth', 4, 'DefaultAxesLineStyleOrder', '.-', 'DefaultLineMarkerSize', 20)
 set(0, 'DefaultLineMarker', 'none')
 % Defaults for text
 set(0, 'DefaultTextInterpreter', 'latex', 'DefaultTextFontName', 'times', 'DefaultTextFontWeight', 'bold')
@@ -28,24 +27,6 @@ M0 = M0 ./ sum(M0); % initial M
 % opts.V0 = zeros(S,1);  % initial V
 % opts.s0 = 1;
 
-% Training parameters
-opts.epochs = 20;
-
-% Load reference solution
-if ~exist('m_opt', 'var')
-	if ~exist('opt_model.mat', 'file')
-		opt
-	end
-	load('opt_model.mat')
-	m_opt = reshape(m_opt, [S,1]);
-end
-opts.m_opt = m_opt;
-
-% Helper functions
-scale = @(arr) (arr - min(arr)) ./ (max(arr) - min(arr));
-draw = @(p) find(cumsum(p) > rand(1), 1);
-opts.GLIE = false;
-opts.softmax = @(q, h) draw(exp((q-max(q))*h) / sum(exp((q-max(q))*h)));
 %NOTE: log of rewards
 % original, expl does not converge
 % opts.bonus = @(s) 0.2 * (sin(4*pi*s*del) + 1); % bonus function
@@ -57,10 +38,34 @@ opts.softmax = @(q, h) draw(exp((q-max(q))*h) / sum(exp((q-max(q))*h)));
 % opts.bonus = @(s) 0.2 * (sin(4*pi*s*del) + 1); % bonus function
 % opts.r = @(s,a,M) - 1/2*(a*del - max(opts.bonus(s), 0.5*(1-M(s,:,:)*S/3))).^2 * del; % reward function
 % Better!
-opts.bonus = @(s) 0.2 * (sin(4*pi*s*del) + 2); % bonus function
-opts.r = @(s,a,M) - 1/2*(a*del - min(opts.bonus(s), 0.5*(1-M(s,:,:)*S/3))).^2 * del; % reward function
+% opts.bonus = @(s) 0.2 * (sin(4*pi*s*del) + 2); % bonus function
+% opts.r = @(s,a,M) - 1/2*(a*del - min(opts.bonus(s), 0.5*(1-M(s,:,:)*S/3))).^2 * del; % reward function
+% opts.bonus = @(s) 0.1 * exp(s*del); % bonus function
+% opts.pop_center = @(M) sum(M .* (1:opts.S)') * del;
+opts.radius = 5;
+opts.r = @(s,a,M) - ((a*del).^2 + 0.5 * (1 - neighbor_center(M,s,opts)).^2); % reward function
 % opts.bonus = @(s)  (sin(4*pi*s*del) + 1); % bonus function
 % opts.r = @(s,a,M) - 1/2*(a*del - min(1, opts.bonus(s) * 0.5 *(1-M(s,:,:)*S/3))).^2 * del; % reward function
+
+% Training parameters
+opts.epochs = 10;
+
+% Load reference solution
+if ~exist('m_opt', 'var')
+	if ~exist('opt_model.mat', 'file')
+		opt
+	else
+		load('opt_model.mat')
+	end
+	m_opt = reshape(m_opt, [S,1]);
+end
+opts.m_opt = m_opt;
+
+% Helper functions
+scale = @(arr) (arr - min(arr)) ./ (max(arr) - min(arr));
+draw = @(p) find(cumsum(p) > rand(1), 1);
+opts.GLIE = false;
+opts.softmax = @(q, h) draw(exp((q-max(q))*h) / sum(exp((q-max(q))*h)));
 opts.method = 'det'; % 'sto'chastic or 'det'erministic
 opts.P_sto = @(s,a) mod(s + (a/S > rand()) - 1, S) + 1;
 % opts.P_det = @(s_con,a) mod(s_con + (a-1) * del - 1, S) + 1;
@@ -91,13 +96,14 @@ opts.T = 2e4;
 opts.method = 'det';
 % opts.temp = 1e1;
 % opts.GLIE = true;
-opts.temp = 1e9; % Decrease the temp to make SGD surpass OMD
+% opts.temp = 1e9; % Decrease the temp to make SGD surpass OMD
+opts.temp = 1e3; % Decrease the temp to make SGD surpass OMD
 opts.GLIE = false;
 opts.alpha0 = 1e-3;
 opts.beta0 = 1e-3;
 % opts.T = 1.2e5;
-opts.T = 1e5;
-opts.K = 2e2; % the key is to keep T >= 1e3
+opts.T = 2e5;
+opts.K = 2e3; % the key is to keep T >= 1e3
 fprintf('Running SemiGD\n')
 [M_gd_arr, Q_gd_arr] = gd(opts);
 err_gd = err(M_gd_arr, m_opt);
@@ -143,7 +149,7 @@ expl_fpi = expl(squeeze(u_fpi_arr),opts);
 %% FPI + ER
 fprintf('Running FPI w/ ER\n')
 temp_hold = opts.temp;
-opts.temp = 1e4; %temp_hold / 1e6;
+opts.temp = temp_hold / 1e6;
 [M_er, Q_er] = qmi(opts);
 err_er = err(M_er, m_opt);
 [V_er, u_er] = max(Q_er, [], 2);
@@ -189,8 +195,8 @@ hold on
 varplot(err_gd(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'SemiSGD');
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
 axis.YScale = 'log';
-axis.XLim = [0, 200];
-axis.YLim = [5e-5, 2e-2];
+% axis.XLim = [0, 200];
+% axis.YLim = [5e-5, 2e-2];
 legend('show', 'fontsize', 18)
 % title('Mean squared error', 'fontsize', 25)
 

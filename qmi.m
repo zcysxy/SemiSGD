@@ -27,7 +27,7 @@ del = opts.del;
 % M0 = opts.M0; Q0 = opts.Q0; s0 = opts.s0;
 epochs = opts.epochs;
 m_opt = opts.m_opt; r = opts.r;
-softmax = opts.softmax; bonus = opts.bonus;
+softmax = opts.softmax;
 temp = opts.temp; GLIE = opts.GLIE;
 P_sto = opts.P_sto; P_det = opts.P_det;
 method = opts.method;
@@ -45,7 +45,7 @@ Q_arr = zeros(S,S,K,epochs);
 
 for e = 1:epochs
     fprintf("epoch: %d\n", e)
-		if ~isfield(opts, 'Q0') Q = rand(S,A) * 1e-6; else Q = opts.Q0; end
+		if ~isfield(opts, 'Q0') Q = -1e2 - rand(S,A); else Q = opts.Q0; end
 		if ~isfield(opts, 'M0') M = abs(randn(S,1)); M = M./sum(M); else M = opts.M0; end
 		if ~isfield(opts, 's0') s1 = randi(S); else s1 = opts.s0; end
     s_con = s1;

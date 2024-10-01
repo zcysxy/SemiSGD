@@ -15,8 +15,8 @@ rho_hist=zeros(S,iters);
 % opts.r = @(s,a,M) - 1/2*(a*del - min(1, bonus(s) * 0.5 *(1-M(s,:,:)*S/3))).^2 * del; % reward function
 % bonus = @(s) 0.2 * (sin(4*pi*s*del) + 2); % bonus function
 % opts.r = @(s,a,M) - 1/2*(a*del - bonus(s) - 0.5*(1-M(s,:,:)*S/3)).^2 * del; % reward function
-opts.bonus = @(s) 0.2 * (sin(4*pi*s*del) + 2); % bonus function
-opts.r = @(s,a,M) - 1/2*(a*del - min(opts.bonus(s), 0.5*(1-M(s,:,:)*S/3))).^2 * del; % reward function
+% opts.bonus = @(s) 0.2 * (sin(4*pi*s*del) + 2); % bonus function
+% opts.r = @(s,a,M) - 1/2*(a*del - min(opts.bonus(s), 0.5*(1-M(s,:,:)*S/3))).^2 * del; % reward function
 
 for iter=1:iters
 	if mod(iter, 10) == 0 disp(iter); end
@@ -24,13 +24,13 @@ for iter=1:iters
 	u_hist(:,iter)=u;
 	V_hist(:,iter)=V;
 	% OMD
-	% u = squeeze(sum(u_hist, 2))/iter;
-	% V = squeeze(sum(V_hist, 2))/iter;
+	u = squeeze(sum(u_hist, 2))/iter;
+	V = squeeze(sum(V_hist, 2))/iter;
 
 	rho = ip(u, 1e-1);
 	rho_hist(:,iter)=rho;
 	% FP
-	% rho = squeeze(sum(rho_hist, 2))/iter;
+	rho = squeeze(sum(rho_hist, 2))/iter;
 end
 
 m_opt = rho;
