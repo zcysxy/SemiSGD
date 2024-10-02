@@ -30,17 +30,6 @@ opts.r = @(s,a,M) - ((a*del).^2 + 0.5 * (1 - neighbor_center(M,s,opts)).^2) * de
 % Training parameters
 opts.epochs = 10;
 
-% Load reference solution
-if ~exist('m_opt', 'var')
-	if ~exist('opt_model.mat', 'file')
-		opt
-	else
-		load('opt_model.mat')
-	end
-	m_opt = reshape(m_opt, [S,1]);
-end
-opts.m_opt = m_opt;
-
 % Helper functions
 scale = @(arr) (arr - min(arr)) ./ (max(arr) - min(arr));
 draw = @(p) find(cumsum(p) > rand(1), 1);
@@ -53,6 +42,18 @@ err = @(M,m_opt) squeeze(sum((circshift(M,0)-m_opt).^2, 1));
 opts.tol_ip = 1e-1; opts.tol_br = 1e-1;
 
 temp_list = [1e-4, 1e-2, 1e-0, 1e2, 1e4, 1e6, 1e8, 1e10];
+temp_mask = [2, 3, 4, 5, 6, 8];
+
+%% Load reference solution
+if ~exist('m_opt', 'var')
+	if ~exist('opt_model.mat', 'file')
+		opt
+	else
+		load('opt_model.mat')
+	end
+	m_opt = reshape(m_opt, [S,1]);
+end
+opts.m_opt = m_opt;
 
 %% SemiSGD
 opts.method = 'det';
@@ -87,34 +88,44 @@ skip = 1;
 ci = 0.8;
 figure
 axis = gca;
-for i = 1:2:length(temp_list)
-	varplot(output{i}.err_gd(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', sprintf('T=%g', temp_list(i)))
+for i = 1:length(temp_mask)
+	varplot(output{temp_mask(i)}.err_gd(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', sprintf('%.0e', temp_list(temp_mask(i))))
 	axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
 	hold on
 end
 axis.YScale = 'log';
-% axis.XLim = [0, 200];
+axis.XLim = [0, 200];
 % axis.YLim = [5e-5, 2e-2];
-legend('show', 'fontsize', 18)
+leg = legend('show', 'fontsize', 18);
+title(leg, '$L_\pi$')
+xlabel('Samples', 'FontSize', 18); ylabel('MSE', 'FontSize', 18)
+xsecondarylabel('$\times 5\times 10^3$')
+axisx = get(gca,'XAxis');
+axisx.TickLabelInterpreter = 'latex';
 
 %% Plot exploitability
 figure
 axis = gca;
-for i = 1:length(temp_list)
-	varplot(output{i}.expl_gd(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', sprintf('T=%g', temp_list(i)))
+for i = 1:length(temp_mask)
+	varplot(output{temp_mask(i)}.expl_gd(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', sprintf('%.0e', temp_list(temp_mask(i))))
 	axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
 	hold on
 end
 axis.YScale = 'log';
-% axis.XLim = [0, 200];
+axis.XLim = [0, 200];
 % axis.YLim = [5e-5, 2e-2];
-legend('show', 'fontsize', 18)
+leg = legend('show', 'fontsize', 18);
+title(leg, '$L_\pi$')
+xlabel('Samples', 'FontSize', 18); ylabel('Exploitability', 'FontSize', 18)
+xsecondarylabel('$\times 5\times 10^3$')
+axisx = get(gca,'XAxis');
+axisx.TickLabelInterpreter = 'latex';
 
 %% Plot distribution
 figure
 axis = gca;
-for i = 1:length(temp_list)
-	varplot(squeeze(output{i}.M_gd_arr(:,end,:)), 'ci', ci, 'marker', 'none', 'DisplayName', sprintf('T=%g', temp_list(i)))
+for i = 1:length(temp_mask)
+	varplot(squeeze(output{temp_mask(i)}.M_gd_arr(:,end,:)), 'ci', ci, 'marker', 'none', 'DisplayName', sprintf('T=%g', temp_list(temp_mask(i))), 'HandleVisibility', 'off')
 	axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
 	hold on
 end
@@ -123,5 +134,5 @@ axis.YScale = 'log';
 % axis.XLim = [0, 200];
 % axis.YLim = [5e-5, 2e-2];
 legend('show', 'fontsize', 18)
-% yt=arrayfun(@num2str,get(gca,'ytick')*S,'un',0)
+xlabel('State space', 'FontSize', 18); ylabel('Population density', 'FontSize', 18)
 

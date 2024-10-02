@@ -96,7 +96,7 @@ opts.T = 2e4;
 opts.method = 'det';
 % opts.temp = 1e1;
 % opts.GLIE = true;
-% opts.temp = 1e9; % Decrease the temp to make SGD surpass OMD
+% opts.temp = 1e8; % Decrease the temp to make SGD surpass OMD
 opts.temp = 1e6; % Decrease the temp to make SGD surpass OMD
 opts.GLIE = false;
 % step size
@@ -196,9 +196,13 @@ hold on
 varplot(err_gd(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'SemiSGD');
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
 axis.YScale = 'log';
-% axis.XLim = [0, 200];
+axis.XLim = [0, 200];
 % axis.YLim = [5e-5, 2e-2];
 legend('show', 'fontsize', 18)
+xlabel('Samples', 'FontSize', 18); ylabel('MSE', 'FontSize', 18)
+xsecondarylable('$\times 5\times 10^3')
+axisx = get(gca,'XAxis');
+axisx.TickLabelInterpreter = 'latex';
 % title('Mean squared error', 'fontsize', 25)
 
 %% Plot exploitability
@@ -225,6 +229,10 @@ axis.YScale = 'log';
 axis.XLim = [0, 200];
 % axis.YLim = [1e-2, 1];
 legend('show', 'fontsize', 18)
+xlabel('Samples', 'FontSize', 18); ylabel('MSE', 'FontSize', 18)
+xsecondarylable('$\times 5\times 10^3')
+axisx = get(gca,'XAxis');
+axisx.TickLabelInterpreter = 'latex';
 % title('Exploitability', 'fontsize', 25)
 
 %% Plot distribution
@@ -246,12 +254,13 @@ varplot(squeeze(M_gd_arr(:,end,:)), 'ci', ci, 'marker', 'none', 'HandleVisibilit
 axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
 hold on
 % Plot m_opt ussing dash and circlr marker
-plot(m_opt, 'LineStyle', '--', 'marker', 'none', 'MarkerSize', 8, 'DisplayName', 'MFE')
+plot(m_opt, 'LineStyle', '--', 'marker', 'none', 'MarkerSize', 18, 'DisplayName', 'MFE')
 % axis.XLim = [0, 200];
 % axis.YLim = [1e-2, 1];
 yt=arrayfun(@num2str,get(gca,'ytick')*S,'un',0)
 set(gca,'yticklabel',yt)
 legend('show', 'fontsize', 18)
+xlabel('State space', 'FontSize', 18); ylabel('Population density', 'FontSize', 18)
 % title('Learned distributions', 'fontsize', 25)
 
 %% Plot population distribution

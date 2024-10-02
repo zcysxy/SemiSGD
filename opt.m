@@ -36,8 +36,8 @@ end
 m_opt = rho;
 u_opt = u;
 V_opt = V;
-figure; plot(expl(u_hist,opts));
-figure; plot(m_opt);
+figure; plot(expl(u_hist,opts)); xlabel('Iterations', 'FontSize', 18); ylabel('Exploitability', 'FontSize', 18);
+% figure; plot(m_opt);
 % save('opt.mat', 'u_opt', 'm_opt', '-mat')
 % addpath('ring_road_04_04/')
 % plot_3D
