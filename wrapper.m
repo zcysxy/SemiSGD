@@ -99,7 +99,7 @@ axis.XLim = [0, 200];
 leg = legend('show', 'fontsize', 18);
 title(leg, '$L_\pi$')
 xlabel('Samples', 'FontSize', 18); ylabel('MSE', 'FontSize', 18)
-xsecondarylabel('$\times 5\times 10^3$')
+xsecondarylabel('$\times 5\times 10^2$')
 axisx = get(gca,'XAxis');
 axisx.TickLabelInterpreter = 'latex';
 
@@ -117,7 +117,7 @@ axis.XLim = [0, 200];
 leg = legend('show', 'fontsize', 18);
 title(leg, '$L_\pi$')
 xlabel('Samples', 'FontSize', 18); ylabel('Exploitability', 'FontSize', 18)
-xsecondarylabel('$\times 5\times 10^3$')
+xsecondarylabel('$\times 5\times 10^2$')
 axisx = get(gca,'XAxis');
 axisx.TickLabelInterpreter = 'latex';
 
