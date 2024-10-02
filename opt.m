@@ -40,6 +40,6 @@ figure; plot(expl(u_hist,opts));
 xlabel('Iteration', 'FontSize', 18);
 ylabel('Exploitability', 'FontSize', 18);
 figure; plot(m_opt);
-% save('opt.mat', 'u_opt', 'm_opt', '-mat')
+save('data/opt_model.mat', 'u_opt', 'm_opt', 'V_opt', '-mat')
 % addpath('ring_road_04_04/')
 % plot_3D

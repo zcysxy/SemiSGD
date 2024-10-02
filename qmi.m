@@ -38,10 +38,11 @@ skip = 1; % + strcmpi(policy, 'off');
 K = opts.K * skip; 
 T = opts.T;
 % T = opts.T + (kappa * S - 1) * opts.T;
+K0 = 200;
+skip = K/K0;
 
-
-M_arr = zeros(S,K,epochs);
-Q_arr = zeros(S,S,K,epochs);
+M_arr = zeros(S,K0,epochs);
+Q_arr = zeros(S,S,K0,epochs);
 
 for e = 1:epochs
     fprintf("epoch: %d\n", e)
@@ -101,8 +102,10 @@ for e = 1:epochs
 				end
         
         % Log
-				M_arr(:,k+1,e) = M;
-				Q_arr(:,:,k+1,e) = Q;
+				if mod(k, skip) == 0
+					M_arr(:,k/skip+1,e) = M;
+					Q_arr(:,:,k/skip+1,e) = Q;
+				end
     end
 end
 end

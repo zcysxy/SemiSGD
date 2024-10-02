@@ -3,7 +3,7 @@ clc; close all;
 % Defaults for axes
 set(0, 'DefaultAxesFontSize', 15, 'DefaultAxesFontName', 'times', 'DefaultAxesFontWeight', 'bold', 'DefaultAxesLineWidth', 1.5)
 % Defaults for plots
-set(0, 'DefaultLineLineWidth', 4, 'DefaultAxesLineStyleOrder', '.-', 'DefaultLineMarkerSize', 20)
+set(0, 'DefaultLineLineWidth', 2, 'DefaultAxesLineStyleOrder', '.-', 'DefaultLineMarkerSize', 20)
 set(0, 'DefaultLineMarker', 'none')
 % Defaults for text
 set(0, 'DefaultTextInterpreter', 'latex', 'DefaultTextFontName', 'times', 'DefaultTextFontWeight', 'bold')
@@ -71,22 +71,6 @@ opts.tol_ip = 1e-1; opts.tol_br = 1e-1;
 % br = @(M) (opts.bonus(1:S)' + 0.5*(1-M*S/3)) / del + 1;
 % expl = @(u) squeeze(sum(((squeeze(u) - br(ip(squeeze(u)),opts)) * del).^2,1));
 
-%% Run
-%% LFA
-%{
-opts.dim = 50;
-opts.method = 'det';
-% opts.temp = 1e1;
-% opts.temp = 1e-1;
-% opts.GLIE = true;
-opts.GLIE = false;
-opts.alpha0 = 1e-3;
-opts.beta0 = 1e-3;
-opts.T = 2e4;
-[err_gd, M_gd, Q_gd, V_gd] = gd_lfa(opts);
-%}
-
-
 %% SemiSGD
 opts.method = 'det';
 % opts.temp = 1e1;
@@ -97,31 +81,10 @@ opts.alpha0 = 1e-3;
 opts.beta0 = 1e-3;
 % opts.T = 1.2e5;
 opts.T = 1e5;
-opts.K = 2e2; % the key is to keep T >= 1e3
-fprintf('Running SemiGD\n')
-[M_gd_arr, Q_gd_arr] = gd(opts);
-err_gd = err(M_gd_arr, m_opt);
-[V_gd_arr, u_gd_arr] = max(Q_gd_arr, [], 2);
-err_V_gd = err(V_gd_arr, V_opt);
-expl_gd = expl(squeeze(u_gd_arr),opts);
-% NOTE: log: 
-% [1,true]: no oscillation, FPI=GD, OMD=FP
-% [9,false] = [4,true]: FPI & OMD oscilate, GD drastically diverge from opt, FP slowly
-
-%% SemiSGD w/ coarser grid
-% opts.Q0 = Inf; opts.M0 = Inf, opts.s0 = Inf;
-% opts = rmfield(opts, {'Q0', 'M0', 's0'});
-% opts.S = 50;
-% opts.A = 50;
-% del = 1/opts.S;
-% opts.del = 1/50;
-% opts.bonus = @(s) 0.2 * (sin(4*pi*s*del) + 2); % bonus function
-% opts.r = @(s,a,M) - 1/2*(a*del - min(opts.bonus(s), 0.5*(1-M(s,:,:)*S/3))).^2 * del; % reward function
-% opts.P_det = @(s_con,a) s_con + a * del;
-% err = @(M,m_opt) squeeze(sum((repelem(M, 50/opts.S, 1)-m_opt).^2, 1));
-% fprintf('Running SemiGD with 10 states\n')
-% [M_cor, Q_cor] = gd(opts);
-% err_cor = err(M_cor, m_opt);
+% opts.K = 2e2; % the key is to keep T >= 1e3
+% fprintf('Running SemiGD\n')
+% [M_gd_arr, Q_gd_arr] = gd(opts);
+% err_gd = err(M_gd_arr, m_opt);
 % [V_gd_arr, u_gd_arr] = max(Q_gd_arr, [], 2);
 % err_V_gd = err(V_gd_arr, V_opt);
 % expl_gd = expl(squeeze(u_gd_arr),opts);
@@ -140,144 +103,4 @@ err_fpi = err(M_fpi_arr, m_opt);
 err_V_fpi = err(V_fpi_arr, V_opt);
 expl_fpi = expl(squeeze(u_fpi_arr),opts);
 
-%% FPI + ER
-fprintf('Running FPI w/ ER\n')
-temp_hold = opts.temp;
-opts.temp = temp_hold / 1e5;
-[M_er, Q_er] = qmi(opts);
-err_er = err(M_er, m_opt);
-[V_er, u_er] = max(Q_er, [], 2);
-err_V_er = err(V_er, V_opt);
-expl_er = expl(squeeze(u_er),opts);
-opts.temp = temp_hold;
 
-%% FPI + FP
-fprintf('Running FPI w/ FP\n')
-opts.FP = true; opts.OMD = false;
-[M_fp_arr, Q_fp_arr] = qmi(opts);
-err_fp = err(M_fp_arr, m_opt);
-[V_fp_arr, u_fp_arr] = max(Q_fp_arr, [], 2);
-err_V_fp = err(V_fp_arr, V_opt);
-expl_fp = expl(squeeze(u_fp_arr),opts);
-
-%% FPI + OMD
-fprintf('Running FPI w/ OMD\n')
-opts.FP = false; opts.OMD = true;
-[M_omd_arr, Q_omd_arr] = qmi(opts);
-err_omd = err(M_omd_arr, m_opt);
-[V_omd_arr, u_omd_arr] = max(Q_omd_arr, [], 2);
-err_V_omd = err(V_omd_arr, V_opt);
-expl_omd = expl(squeeze(u_omd_arr),opts);
-
-%% Plot MSE
-skip = 1;
-ci = 0.88;
-figure
-axis = gca;
-varplot(err_fpi(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'FPI')
-axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
-hold on
-varplot(err_er(1:skip:end,:), 'ci', ci,'marker', 'none', 'DisplayName', 'FPI + ER')
-axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
-hold on
-varplot(err_fp(1:skip:end,:), 'ci', ci,'marker', 'none', 'DisplayName', 'FPI + FP')
-axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
-hold on
-varplot(err_omd(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'FPI + OMD')
-axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
-hold on
-varplot(err_gd(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'SemiSGD');
-axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
-axis.YScale = 'log';
-axis.XLim = [0, 200];
-axis.YLim = [5e-5, 2e-2];
-xlabel('Samples', 'fontsize', 18)
-xsecondarylabel('$\times 5\times 10^2$')
-ax = get(gca, 'XAxis');
-ax.TickLabelInterpreter ='latex';
-ylabel('MSE', 'fontsize', 18)
-legend('show', 'fontsize', 18)
-% title('Mean squared error', 'fontsize', 25)
-
-%% Plot exploitability
-ci = 0.85;
-figure
-axis = gca;
-% Plot a line of constant 1e-4 for reference
-varplot(expl_fpi(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'FPI')
-axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
-hold on
-varplot(expl_er(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'FPI + ER')
-axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
-hold on
-varplot(expl_fp(1:skip:end,:), 'ci', ci,'marker', 'none', 'DisplayName', 'FPI + FP')
-axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
-hold on
-varplot(expl_omd(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'FPI + OMD')
-axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
-hold on
-varplot(expl_gd(1:skip:end,:), 'ci', ci, 'marker', 'none', 'DisplayName', 'SemiSGD');
-axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
-% hold on
-% plot(expl(u_opt,opts)*ones(1:skip,opts.K), 'marker', 'none', 'DisplayName', 'Optimal')
-axis.YScale = 'log';
-axis.XLim = [0, 200];
-% axis.YLim = [1e-2, 1];
-xlabel('Samples', 'fontsize', 18)
-xsecondarylabel('$\times 5\times 10^2$')
-ax = get(gca, 'XAxis');
-ax.TickLabelInterpreter ='latex';
-ylabel('Exploitability', 'fontsize', 18)
-% legend('show', 'fontsize', 18)
-% title('Exploitability', 'fontsize', 25)
-
-%% Plot distribution
-figure
-axis = gca;
-varplot(squeeze(M_fpi_arr(:,end,:)), 'ci', ci, 'marker', 'none', 'DisplayName', 'FPI', 'HandleVisibility', 'off')
-axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
-hold on
-varplot(squeeze(M_er(:,end,:)), 'ci', ci, 'marker', 'none', 'DisplayName', 'FPI + ER', 'HandleVisibility', 'off')
-axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
-hold on
-varplot(squeeze(M_fp_arr(:,end,:)), 'ci', ci, 'marker', 'none', 'DisplayName', 'FPI + FP', 'HandleVisibility', 'off')
-axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
-hold on
-varplot(squeeze(M_omd_arr(:,end,:)), 'ci', ci, 'marker', 'none', 'DisplayName', 'FPI + OMD', 'HandleVisibility', 'off')
-axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
-hold on
-varplot(squeeze(M_gd_arr(:,end,:)), 'ci', ci, 'marker', 'none', 'DisplayName', 'SemiSGD', 'HandleVisibility', 'off')
-axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Children(1).HandleVisibility = 'off';
-hold on
-% Plot m_opt ussing dash and circlr marker
-plot(m_opt, 'LineStyle', '--', 'marker', 'none', 'MarkerSize', 8, 'DisplayName', 'MFE')
-% axis.XLim = [0, 200];
-% axis.YLim = [1e-2, 1];
-yt=arrayfun(@num2str,get(gca,'ytick')*S,'un',0);
-set(gca,'yticklabel',yt)
-legend('show', 'fontsize', 18)
-xlabel('State space', 'fontsize', 18)
-ylabel('Population density', 'fontsize', 18)
-% title('Learned distributions', 'fontsize', 25)
-
-%% Plot population distribution
-%{
-figure
-set(0, 'DefaultLineLineWidth', 2);
-axis = gca;
-plot(scale(m_opt),  'DisplayName', 'Optimal')
-hold on
-plot(scale(M_on),  'DisplayName', 'FPI')
-hold on
-plot(scale(M_fp),  'DisplayName', 'FP')
-hold on
-plot(scale(M_omd), 'DisplayName', 'OMD')
-hold on
-plot(scale(circshift(M_gd,0)), 'DisplayName', 'GD');
-title('Learned population distribution')
-legend('show')
-%}
-
-% plot_list = {'T'};
-% save_flag = false;
-% plot_results
