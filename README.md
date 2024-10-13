@@ -18,6 +18,9 @@
     - `projsplx.m`: projection onto the simplex
 - Plotting functions:
     - `plot_results.m`, `varplot.m`, `pretty.m`
+- `data/`: Environment data, workspace variables, and backup files
+- `fig/`: Figures
+- `ref/`: Reference code
 
 ## Development
 
