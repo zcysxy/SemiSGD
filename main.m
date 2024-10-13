@@ -1,16 +1,7 @@
 clc; close all;
 %% Setup
-% Defaults for axes
-set(0, 'DefaultAxesFontSize', 15, 'DefaultAxesFontName', 'times', 'DefaultAxesFontWeight', 'bold', 'DefaultAxesLineWidth', 1.5)
-% Defaults for plots
-set(0, 'DefaultLineLineWidth', 4, 'DefaultAxesLineStyleOrder', '.-', 'DefaultLineMarkerSize', 20)
-set(0, 'DefaultLineMarker', 'none')
-% Defaults for text
-set(0, 'DefaultTextInterpreter', 'latex', 'DefaultTextFontName', 'times', 'DefaultTextFontWeight', 'bold')
-% Defaults for legend
-set(0, 'DefaultLegendInterpreter', 'latex')
 
-% Problem parameters
+%% Problem parameters
 opts.S = 50;     % state space
 S = opts.S;
 opts.A = S;      % action space
@@ -191,13 +182,12 @@ axis.Children(1).EdgeColor = 'none'; axis.Children(1).FaceAlpha = 0.5; axis.Chil
 axis.YScale = 'log';
 axis.XLim = [0, 200];
 axis.YLim = [5e-5, 2e-2];
-xlabel('Samples', 'fontsize', 18)
-xsecondarylabel('$\times 5\times 10^2$')
-ax = get(gca, 'XAxis');
-ax.TickLabelInterpreter ='latex';
-ylabel('MSE', 'fontsize', 18)
-legend('show', 'fontsize', 18)
-% title('Mean squared error', 'fontsize', 25)
+axopts.numTicks = 5;
+xlabel('Samples')
+xsecondarylabel('\times 5\times 10^2')
+ylabel('MSE')
+legend;
+% remove the border of the legend
 
 %% Plot exploitability
 ci = 0.85;
