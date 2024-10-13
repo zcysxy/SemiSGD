@@ -1,6 +1,6 @@
 # Comparisons of SemiSGD and FPI-type methods on Ring Road Speed Control
 
-File list:
+## Project Structure
 
 - Main script to run the simulation:
     - `main.m`
